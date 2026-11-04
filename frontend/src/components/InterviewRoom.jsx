@@ -16,10 +16,13 @@ import {
   Award, 
   Clock, 
   Loader2, 
-  X,
   HelpCircle,
   FileText,
-  Radio
+  Radio,
+  SlidersHorizontal,
+  ChevronRight,
+  User,
+  Bot
 } from 'lucide-react';
 import AICoreVisualizer from './AICoreVisualizer';
 import { voicePersona } from '../utils/speechPersona';
@@ -37,9 +40,14 @@ export default function InterviewRoom({
   const [answers, setAnswers] = useState({});
   const [evaluations, setEvaluations] = useState({});
 
+  // Voice Mode Toggle (Synchronized with wizard preference or default)
+  const [voiceMode, setVoiceMode] = useState(() => {
+    return sessionMeta?.interviewMode === 'voice';
+  });
+
   // Assistant state: IDLE, LISTENING, THINKING, SPEAKING, ERROR
   const [assistantState, setAssistantState] = useState('IDLE');
-  const [assistantStatusText, setAssistantStatusText] = useState('Assistant Ready — Waiting for your answer');
+  const [assistantStatusText, setAssistantStatusText] = useState('Interviewer ready — Awaiting your response');
 
   // Speech Recognition (STT)
   const [isListening, setIsListening] = useState(false);
@@ -50,11 +58,11 @@ export default function InterviewRoom({
 
   // Speech Synthesis (TTS)
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [autoReadAudio, setAutoReadAudio] = useState(false); // Default OFF per requirements!
 
   // Evaluation & Completion states
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [validationWarning, setValidationWarning] = useState('');
 
   // Timer
   const [seconds, setSeconds] = useState(0);
@@ -113,14 +121,14 @@ export default function InterviewRoom({
           setAssistantState('ERROR');
           soundFX.playAlert();
           if (event.error === 'not-allowed') {
-            setMicError('Microphone permission was denied. Please allow microphone access in your browser or type your answer directly.');
-            setAssistantStatusText('Microphone permission denied — Text input available');
+            setMicError('Microphone permission was denied. Please allow microphone access or type your response directly.');
+            setAssistantStatusText('Microphone permission denied — Text input active');
           } else if (event.error === 'no-speech') {
-            setMicError('No speech was detected. Please speak closer to your microphone or type your response.');
-            setAssistantStatusText('No speech detected');
+            setMicError('No speech detected. Please speak closer to your microphone or type your response.');
+            setAssistantStatusText('No speech detected — Waiting for input');
           } else {
-            setMicError(`Voice input event: ${event.error}. You can type your answer directly.`);
-            setAssistantStatusText('Voice error — Text input available');
+            setMicError(`Voice input notice: ${event.error}. You can edit or type your response directly.`);
+            setAssistantStatusText('Voice error — Text input active');
           }
           setTimeout(() => {
             if (assistantState === 'ERROR') setAssistantState('IDLE');
@@ -132,7 +140,7 @@ export default function InterviewRoom({
           setInterimTranscript('');
           if (assistantState === 'LISTENING') {
             setAssistantState('IDLE');
-            setAssistantStatusText('Waiting for candidate answer');
+            setAssistantStatusText('Waiting for your response');
           }
         };
 
@@ -158,12 +166,14 @@ export default function InterviewRoom({
     stopListening();
     setMicError(null);
     setInterimTranscript('');
+    setValidationWarning('');
 
-    if (autoReadAudio && currentQuestion?.question_text) {
+    // If Voice Mode is ON, read question aloud automatically
+    if (voiceMode && currentQuestion?.question_text) {
       speakQuestion(currentQuestion.question_text);
     } else {
       setAssistantState('IDLE');
-      setAssistantStatusText('Question loaded — Awaiting your response');
+      setAssistantStatusText('Question loaded — You may type or speak your answer');
     }
   }, [currentIndex]);
 
@@ -171,24 +181,24 @@ export default function InterviewRoom({
     if (!text) return;
     voicePersona.stopSpeaking();
     setAssistantState('SPEAKING');
-    setAssistantStatusText('Assistant Speaking — Reading question aloud');
+    setAssistantStatusText('AI Interviewer is reading the question aloud...');
     setIsSpeaking(true);
 
     voicePersona.speak(text, {
       onStart: () => {
         setIsSpeaking(true);
         setAssistantState('SPEAKING');
-        setAssistantStatusText('Assistant Speaking — Reading question aloud');
+        setAssistantStatusText('AI Interviewer is reading the question aloud...');
       },
       onEnd: () => {
         setIsSpeaking(false);
         setAssistantState('IDLE');
-        setAssistantStatusText('Question read aloud — You may speak or type your answer');
+        setAssistantStatusText('Question read aloud. You may speak or type your answer.');
       },
       onError: () => {
         setIsSpeaking(false);
         setAssistantState('IDLE');
-        setAssistantStatusText('Speech synthesis complete');
+        setAssistantStatusText('Speech complete. Awaiting answer.');
       }
     });
   };
@@ -214,6 +224,7 @@ export default function InterviewRoom({
   const startListening = () => {
     stopSpeaking();
     setMicError(null);
+    setValidationWarning('');
     if (!isMicSupported) {
       setMicError('Speech recognition is not supported in this browser. Please type your answer directly.');
       return;
@@ -237,19 +248,35 @@ export default function InterviewRoom({
     setInterimTranscript('');
   };
 
-  // Evaluate Current Answer
+  // Toggle Voice Mode ON / OFF
+  const handleToggleVoiceMode = () => {
+    const next = !voiceMode;
+    setVoiceMode(next);
+    soundFX.playClick();
+    if (!next) {
+      stopSpeaking();
+      stopListening();
+    } else if (currentQuestion?.question_text) {
+      speakQuestion(currentQuestion.question_text);
+    }
+  };
+
+  // Evaluate Current Answer (SUBMISSION HANDLER)
   const handleEvaluateAnswer = async () => {
+    setValidationWarning('');
     if (!currentAnswer.trim()) {
-      alert("Please provide an answer (by typing or speaking) before submitting for evaluation.");
+      setValidationWarning('Please provide an answer by typing or speaking before submitting.');
+      soundFX.playAlert();
       return;
     }
 
+    // Stop active speech recognition or playback before evaluating
     stopListening();
     stopSpeaking();
     soundFX.playClick();
     setIsEvaluating(true);
     setAssistantState('THINKING');
-    setAssistantStatusText('Evaluating answer against technical and STAR rubrics...');
+    setAssistantStatusText('Evaluating response against technical and STAR communication rubrics...');
 
     try {
       const evalResult = await evaluateAnswerApi({
@@ -262,13 +289,13 @@ export default function InterviewRoom({
 
       setEvaluations((prev) => ({ ...prev, [currentIndex]: evalResult }));
       setAssistantState('IDLE');
-      setAssistantStatusText(`Evaluation complete — Score: ${evalResult.score}/100`);
+      setAssistantStatusText(`Evaluation complete — Score: ${Math.round(evalResult.score)}/100`);
       soundFX.playSuccess();
     } catch (err) {
       setAssistantState('ERROR');
       setAssistantStatusText(`Evaluation error: ${err.message}`);
       soundFX.playAlert();
-      alert(`Evaluation failed: ${err.message}`);
+      setValidationWarning(`Evaluation failed: ${err.message}`);
     } finally {
       setIsEvaluating(false);
     }
@@ -280,7 +307,6 @@ export default function InterviewRoom({
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Complete Interview
       handleFinishSession();
     }
   };
@@ -288,7 +314,7 @@ export default function InterviewRoom({
   const handleFinishSession = async () => {
     setIsFinishing(true);
     setAssistantState('PROCESSING');
-    setAssistantStatusText('Compiling interview performance report and persisting to ledger...');
+    setAssistantStatusText('Compiling final interview evaluation report and saving session...');
 
     const evaluatedQuestions = questions.map((q, idx) => ({
       ...q,
@@ -300,7 +326,7 @@ export default function InterviewRoom({
       await onFinishInterview({
         questions: evaluatedQuestions,
         elapsedSeconds: seconds,
-        isVoiceSession: sessionMeta?.interviewMode === 'voice'
+        isVoiceSession: voiceMode
       });
     } catch (err) {
       setIsFinishing(false);
@@ -321,8 +347,8 @@ export default function InterviewRoom({
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-16">
       
-      {/* 1. Header Bar: Progress, Timer, End Interview Button */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4 shadow-lg">
+      {/* 1. Header Bar: Progress, Timer, Voice Mode Toggle & Exit Button */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
         
         {/* Left: Question Progress Stepper */}
         <div className="flex items-center gap-3">
@@ -340,14 +366,14 @@ export default function InterviewRoom({
                     soundFX.playClick();
                     setCurrentIndex(idx);
                   }}
-                  className={`w-7 h-7 rounded-lg text-xs font-bold transition-all flex items-center justify-center ${
+                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all flex items-center justify-center ${
                     isCurrent
-                      ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-400 font-bold'
+                      ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-100'
                       : isEvaluated
-                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       : hasAnswer
-                      ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/30'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                   title={`Question ${idx + 1}`}
                 >
@@ -357,43 +383,43 @@ export default function InterviewRoom({
             })}
           </div>
 
-          <span className="text-xs font-mono text-slate-400">
-            Question <strong className="text-white">{currentIndex + 1}</strong> of {totalQuestions}
+          <span className="text-xs font-medium text-slate-500">
+            Question <strong className="text-slate-900">{currentIndex + 1}</strong> of {totalQuestions}
           </span>
         </div>
 
         {/* Center: Pacing Timer */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-slate-300">
-          <Clock className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono font-medium text-slate-600">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
           <span>{formatTimer(seconds)}</span>
         </div>
 
-        {/* Right: Auto-Read Toggle & Safe End Interview Button */}
-        <div className="flex items-center gap-2">
-          {/* User-controlled Auto-Read Toggle (Default OFF!) */}
+        {/* Right: Voice Mode Toggle & Safe End Interview Button */}
+        <div className="flex items-center gap-2.5">
+          {/* Explicit Voice Mode Switch */}
           <button
             type="button"
-            onClick={() => {
-              const next = !autoReadAudio;
-              setAutoReadAudio(next);
-              soundFX.playClick();
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-              autoReadAudio 
-                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
-                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+            onClick={handleToggleVoiceMode}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+              voiceMode
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
-            title="Toggle automatic speech readout of new questions"
+            title="Toggle Voice Mode (automatic speech playback and dictation)"
           >
-            {autoReadAudio ? <Volume2 className="w-3.5 h-3.5 text-cyan-400" /> : <VolumeX className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">Auto-Read: {autoReadAudio ? 'ON' : 'OFF'}</span>
+            {voiceMode ? (
+              <Volume2 className="w-3.5 h-3.5 text-blue-600" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+            )}
+            <span>Voice Mode: <strong className={voiceMode ? 'text-blue-700' : 'text-slate-700'}>{voiceMode ? 'ON' : 'OFF'}</strong></span>
           </button>
 
-          {/* End Interview Button (Triggers Safe Confirmation Modal) */}
+          {/* End Interview Button */}
           <button
             type="button"
             onClick={() => setShowExitModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-xs font-semibold transition-all"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors"
           >
             End Interview
           </button>
@@ -401,28 +427,35 @@ export default function InterviewRoom({
 
       </div>
 
-      {/* 2. AI Assistant Living Status Strip */}
-      <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <AICoreVisualizer 
-              size={56} 
-              state={assistantState} 
-              audioLevel={assistantState === 'SPEAKING' || assistantState === 'LISTENING' ? 0.7 : 0.15} 
-            />
+      {/* 2. Professional AI Interviewer Status Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
+            <Bot className="w-6 h-6" />
           </div>
-          <div className="space-y-0.5">
+          <div>
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono text-cyan-400 uppercase font-bold tracking-wider">
-                ASSISTANT STATE: {assistantState}
+              <span className="text-xs font-bold text-slate-900">
+                AI Interviewer
+              </span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${
+                assistantState === 'SPEAKING' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                assistantState === 'LISTENING' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 animate-pulse' :
+                assistantState === 'THINKING' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                'bg-slate-50 text-slate-600 border-slate-200'
+              }`}>
+                {assistantState === 'SPEAKING' ? 'Speaking' :
+                 assistantState === 'LISTENING' ? 'Listening' :
+                 assistantState === 'THINKING' ? 'Evaluating' : 'Ready'}
               </span>
               {isListening && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-rose-400 font-mono animate-pulse">
-                  <span className="w-2 h-2 rounded-full bg-rose-500" /> RECORDING
+                <span className="inline-flex items-center gap-1 text-[11px] text-rose-600 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  Recording
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-300 font-medium">
+            <p className="text-xs text-slate-600 mt-0.5">
               {assistantStatusText}
             </p>
           </div>
@@ -434,7 +467,7 @@ export default function InterviewRoom({
             <button
               type="button"
               onClick={stopSpeaking}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-rose-400 border border-slate-700 text-xs font-semibold hover:bg-slate-750"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-medium transition-colors"
             >
               <Square className="w-3.5 h-3.5 fill-current" />
               <span>Stop Audio</span>
@@ -443,134 +476,141 @@ export default function InterviewRoom({
             <button
               type="button"
               onClick={() => speakQuestion(currentQuestion?.question_text)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-750 text-cyan-300 border border-slate-700 text-xs font-semibold"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium transition-colors"
             >
-              <Play className="w-3.5 h-3.5" />
-              <span>Read Question Aloud</span>
+              <Play className="w-3.5 h-3.5 text-blue-600" />
+              <span>Read Aloud</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 3. The Question Card */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      {/* 3. The Interview Question Card */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
               {currentQuestion.category || 'Technical Evaluation'}
             </span>
-            <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">
+            <span className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-600">
               {sessionMeta?.difficulty || 'Mid-Level'}
             </span>
             {currentQuestion.tag && (
-              <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1 ${
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${
                 currentQuestion.tag === 'Review Question' || currentQuestion.is_review
-                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
               }`}>
-                {currentQuestion.tag === 'Review Question' || currentQuestion.is_review ? (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                    Review Question
-                  </>
-                ) : (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Fresh Question
-                  </>
-                )}
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  currentQuestion.tag === 'Review Question' || currentQuestion.is_review ? 'bg-amber-500' : 'bg-emerald-500'
+                }`} />
+                {currentQuestion.tag === 'Review Question' || currentQuestion.is_review ? 'Review Question' : 'Fresh Question'}
               </span>
             )}
           </div>
 
           {currentQuestion.resume_context && (
-            <div className="text-xs text-slate-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <div className="text-xs text-slate-500 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
               <span className="truncate max-w-xs sm:max-w-md">{currentQuestion.resume_context}</span>
             </div>
           )}
         </div>
 
-        {/* Question Prompt */}
-        <div className="space-y-1.5">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-            INTERVIEW QUESTION #{currentIndex + 1}
+        {/* Question Text */}
+        <div className="space-y-1">
+          <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+            Question {currentIndex + 1}
           </span>
-          <h2 className="text-xl sm:text-2xl font-bold text-white leading-relaxed">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">
             "{currentQuestion.question_text}"
           </h2>
         </div>
       </div>
 
-      {/* 4. The Candidate Answer Area */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4 shadow-xl">
+      {/* 4. Candidate Answer Input Area (Synchronized with speech & manual typing) */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono flex items-center gap-2">
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <span>Your Response:</span>
+          <label className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+            <FileText className="w-4 h-4 text-blue-600" />
+            <span>Your Response</span>
           </label>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs text-slate-500 font-mono">
             {wordCount} words
           </span>
         </div>
 
-        {/* Answer Textarea */}
+        {/* Answer Textarea: Always accessible and editable */}
         <textarea
           rows={6}
           value={currentAnswer}
-          onChange={(e) => setAnswers({ ...answers, [currentIndex]: e.target.value })}
-          placeholder="Speak using the microphone below or type your answer directly. Structure your response with technical context, action taken, and measurable results..."
-          className="w-full p-4 bg-slate-950 border border-slate-700 rounded-2xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-sans leading-relaxed"
+          onChange={(e) => {
+            setValidationWarning('');
+            setAnswers({ ...answers, [currentIndex]: e.target.value });
+          }}
+          placeholder="Type your response directly or use the microphone button to dictate. You can freely edit and refine your answer before submitting..."
+          className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed font-sans transition-all"
         />
 
-        {/* Live Interim Transcript when Speaking */}
+        {/* Live Speech Recognition Transcription Banner */}
         {isListening && interimTranscript && (
-          <div className="p-3 bg-slate-950/80 border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300 animate-fadeIn">
-            <span className="text-[10px] text-slate-500 block uppercase mb-1">Live voice transcript:</span>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 animate-fadeIn">
+            <span className="text-[11px] text-blue-600 font-semibold block uppercase mb-0.5">
+              Live Speech Transcription:
+            </span>
             "{interimTranscript}"
           </div>
         )}
 
-        {/* Mic Error Display */}
+        {/* Mic Notice / Error */}
         {micError && (
-          <div className="p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
             <span>{micError}</span>
           </div>
         )}
 
-        {/* Primary Interaction Controls Bar */}
+        {/* Validation Warning */}
+        {validationWarning && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2 animate-fadeIn">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
+            <span>{validationWarning}</span>
+          </div>
+        )}
+
+        {/* Primary Controls: Microphone Dictation & ALWAYS-VISIBLE Submit Button */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          {/* Mic Button */}
+          
+          {/* Microphone Action Button */}
           <button
             type="button"
             onClick={toggleListening}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all shadow-md ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
               isListening
-                ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse shadow-rose-500/25'
-                : 'bg-slate-800 hover:bg-slate-750 text-cyan-300 border border-slate-700 hover:border-cyan-500/40'
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm ring-2 ring-rose-200'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
             }`}
           >
             {isListening ? (
               <>
-                <Mic className="w-4 h-4 animate-bounce" />
+                <Square className="w-3.5 h-3.5 fill-current" />
                 <span>Stop Listening</span>
               </>
             ) : (
               <>
-                <Mic className="w-4 h-4" />
-                <span>Speak Answer (Mic)</span>
+                <Mic className="w-3.5 h-3.5 text-blue-600" />
+                <span>Record Voice Answer</span>
               </>
             )}
           </button>
 
-          {/* Submit Answer Button */}
-          <div className="flex items-center gap-3">
+          {/* ALWAYS VISIBLE Submit Answer Button */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleEvaluateAnswer}
               disabled={isEvaluating || !currentAnswer.trim()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold rounded-xl text-xs sm:text-sm shadow-md shadow-cyan-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
             >
               {isEvaluating ? (
                 <>
@@ -580,53 +620,64 @@ export default function InterviewRoom({
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Submit Answer for Evaluation</span>
+                  <span>{currentEval ? 'Re-Submit for Evaluation' : 'Submit Answer'}</span>
                 </>
               )}
             </button>
           </div>
+
         </div>
       </div>
 
-      {/* 5. Real-Time Rubric Evaluation Display (Appears once evaluated) */}
+      {/* 5. Evaluation Feedback Card (Appears after submission) */}
       {currentEval && (
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-cyan-500/30 space-y-6 shadow-xl animate-fadeIn">
-          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-            <div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h3 className="text-lg font-bold text-white">
-                  Answer Evaluation Score: {currentEval.score}/100
-                </h3>
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-7 shadow-sm space-y-5 animate-fadeIn">
+          
+          <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold text-lg">
+                {Math.round(currentEval.score)}
               </div>
-              <p className="text-xs text-slate-400 mt-1 font-mono">
-                Evaluated against: Relevance, Accuracy, Clarity, and Supporting Evidence
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-slate-900">
+                    Evaluation Score: {Math.round(currentEval.score)}/100
+                  </h3>
+                  <span className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-medium border border-emerald-200">
+                    Evaluated
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Rubric Assessment: Relevance, Accuracy, Clarity & Evidence
+                </p>
+              </div>
             </div>
 
-            {/* Subscores Strip */}
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <span className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-                Rel: <strong className="text-cyan-400">{currentEval.relevance_score || currentEval.relevance}/25</strong>
-              </span>
-              <span className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-                Acc: <strong className="text-cyan-400">{currentEval.technical_accuracy_score || currentEval.accuracy}/25</strong>
-              </span>
-              <span className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-                Cla: <strong className="text-cyan-400">{currentEval.clarity_score || currentEval.clarity}/25</strong>
-              </span>
-              <span className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-300">
-                Evi: <strong className="text-cyan-400">{currentEval.supporting_evidence_score || currentEval.evidence}/25</strong>
-              </span>
+            {/* Rubric Subscores */}
+            <div className="flex items-center gap-2 text-xs">
+              <div className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600">
+                Relevance: <strong className="text-slate-900">{currentEval.relevance_score || currentEval.relevance || 0}/25</strong>
+              </div>
+              <div className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600">
+                Accuracy: <strong className="text-slate-900">{currentEval.technical_accuracy_score || currentEval.accuracy || 0}/25</strong>
+              </div>
+              <div className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600">
+                Clarity: <strong className="text-slate-900">{currentEval.clarity_score || currentEval.clarity || 0}/25</strong>
+              </div>
+              <div className="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-slate-600">
+                Evidence: <strong className="text-slate-900">{currentEval.supporting_evidence_score || currentEval.evidence || 0}/25</strong>
+              </div>
             </div>
           </div>
 
           {/* Strengths & Improvements */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             {/* Strengths */}
-            <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-2">
-              <span className="font-bold text-emerald-300 uppercase tracking-wider block">Strengths Demonstrated</span>
-              <ul className="space-y-1.5 text-slate-300 list-disc list-inside">
+            <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-2">
+              <span className="font-bold text-emerald-800 uppercase tracking-wider block">
+                Demonstrated Strengths
+              </span>
+              <ul className="space-y-1.5 text-slate-700 list-disc list-inside">
                 {(currentEval.strengths || []).map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
@@ -634,9 +685,11 @@ export default function InterviewRoom({
             </div>
 
             {/* Areas to Improve */}
-            <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/30 space-y-2">
-              <span className="font-bold text-amber-300 uppercase tracking-wider block">Areas to Improve</span>
-              <ul className="space-y-1.5 text-slate-300 list-disc list-inside">
+            <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+              <span className="font-bold text-amber-800 uppercase tracking-wider block">
+                Areas for Improvement
+              </span>
+              <ul className="space-y-1.5 text-slate-700 list-disc list-inside">
                 {(currentEval.weaknesses || currentEval.areas_to_improve || []).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
@@ -644,14 +697,14 @@ export default function InterviewRoom({
             </div>
           </div>
 
-          {/* Coach Suggestion */}
+          {/* Coach's Suggestion */}
           {currentEval.coach_suggestion && (
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 text-xs">
-              <span className="font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Coach Suggestion
+            <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80 space-y-1 text-xs">
+              <span className="font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                Interviewer Recommendation
               </span>
-              <p className="text-slate-300 leading-relaxed">
+              <p className="text-slate-700 leading-relaxed">
                 {currentEval.coach_suggestion}
               </p>
             </div>
@@ -663,7 +716,7 @@ export default function InterviewRoom({
               type="button"
               onClick={handleNextOrFinish}
               disabled={isFinishing}
-              className="flex items-center gap-2 px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl text-sm shadow-md shadow-cyan-500/25 transition-all"
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm shadow-sm transition-all"
             >
               {currentIndex < totalQuestions - 1 ? (
                 <>
@@ -687,32 +740,33 @@ export default function InterviewRoom({
               )}
             </button>
           </div>
+
         </div>
       )}
 
-      {/* 6. Safe End Interview Confirmation Modal */}
+      {/* 6. End Interview Confirmation Modal */}
       {showExitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl text-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                <AlertTriangle className="w-6 h-6" />
+              <div className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">End Interview Early?</h3>
-                <p className="text-xs text-slate-400">Confirmation required</p>
+                <h3 className="text-base font-bold text-slate-900">End Interview Early?</h3>
+                <p className="text-xs text-slate-500">You have evaluated {evaluatedCount} of {totalQuestions} questions.</p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Are you sure you want to end this interview session? You have evaluated {evaluatedCount} of {totalQuestions} questions. You can view the report for evaluated questions or exit to the home screen.
+            <p className="text-xs text-slate-600 leading-relaxed">
+              If you end now, you can save and view the performance report for the evaluated questions, or exit to the dashboard without saving.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setShowExitModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-xs font-semibold text-slate-300 transition-colors"
+                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-700 transition-colors"
               >
                 Continue Interview
               </button>
@@ -724,7 +778,7 @@ export default function InterviewRoom({
                     setShowExitModal(false);
                     handleFinishSession();
                   }}
-                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-xs font-bold text-white transition-colors"
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-semibold text-white transition-colors"
                 >
                   Save & View Report
                 </button>
@@ -735,7 +789,7 @@ export default function InterviewRoom({
                     setShowExitModal(false);
                     onCancel();
                   }}
-                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white transition-colors"
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-xs font-semibold text-white transition-colors"
                 >
                   Exit Without Saving
                 </button>

@@ -8,16 +8,17 @@ import {
   Award, 
   Briefcase, 
   Layers, 
-  Loader2,
-  AlertCircle,
-  Download,
-  ShieldCheck,
-  CheckCircle2,
-  RotateCcw,
-  Sparkles,
-  BookOpen,
-  Clock,
-  Tag
+  Loader2, 
+  AlertCircle, 
+  Download, 
+  ShieldCheck, 
+  CheckCircle2, 
+  RotateCcw, 
+  Sparkles, 
+  BookOpen, 
+  Clock, 
+  Tag,
+  ChevronRight
 } from 'lucide-react';
 import { 
   fetchHistory, 
@@ -112,24 +113,24 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
     return text.includes(query) || concept.includes(query) || topic.includes(query);
   });
 
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40';
-    if (score >= 65) return 'text-cyan-400 bg-cyan-950/60 border-cyan-500/40';
-    if (score >= 50) return 'text-amber-400 bg-amber-950/60 border-amber-500/40';
-    return 'text-rose-400 bg-rose-950/60 border-rose-500/40';
+  const getScoreBadgeClass = (score) => {
+    if (score >= 80) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    if (score >= 65) return 'text-blue-700 bg-blue-50 border-blue-200';
+    if (score >= 50) return 'text-amber-700 bg-amber-50 border-amber-200';
+    return 'text-rose-700 bg-rose-50 border-rose-200';
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-fadeIn pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-16">
       
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Practice History & Duplicate Prevention Ledger
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Interview History & Activity Ledger
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Persisted locally in your SQLite database. Tracks completed interviews, score trends, and asked question fingerprints.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Persisted in SQLite database. Tracks completed interviews, score trends, and duplicate question indexes.
           </p>
         </div>
 
@@ -138,25 +139,25 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
             soundFX.playClick();
             onStartNew();
           }}
-          className="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-md shadow-cyan-600/25 transition-all cursor-pointer flex items-center gap-1.5"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>+ Start New Interview</span>
+          <span>New Mock Interview</span>
         </button>
       </div>
 
-      {/* Main Tabs (Sessions vs Questions Ledger) */}
-      <div className="flex border-b border-slate-800 gap-2">
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200">
         <button
           type="button"
           onClick={() => {
             soundFX.playClick();
             setActiveTab('sessions');
           }}
-          className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 px-4 text-xs font-semibold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'sessions'
-              ? 'border-cyan-400 text-cyan-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
           <History className="w-4 h-4" />
@@ -170,35 +171,36 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
             setActiveTab('questions');
             loadAskedQuestions();
           }}
-          className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+          className={`pb-3 px-4 text-xs font-semibold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
             activeTab === 'questions'
-              ? 'border-cyan-400 text-cyan-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Question Ledger & Duplicate Shield ({askedQuestions.length})</span>
+          <ShieldCheck className="w-4 h-4 text-blue-600" />
+          <span>Question Index ({askedQuestions.length})</span>
         </button>
       </div>
 
       {/* TAB 1: SESSIONS */}
       {activeTab === 'sessions' && (
         <div className="space-y-4">
-          {/* Filter / Search Bar */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          
+          {/* Search & Filter Bar */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by job role or candidate name..."
-                className="w-full pl-10 pr-4 py-2 text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-400 font-medium placeholder-slate-500"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-400"
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="text-slate-400 font-medium text-[11px]">Type:</span>
+              <span className="text-slate-500 text-[11px]">Category:</span>
               {['ALL', 'Mixed', 'Technical', 'Behavioral'].map((type) => (
                 <button
                   key={type}
@@ -206,10 +208,10 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
                     soundFX.playClick();
                     setFilterType(type);
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
                     filterType === type
-                      ? 'bg-cyan-500 text-slate-950 font-bold'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-750'
+                      ? 'bg-blue-600 text-white font-semibold'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
                   {type}
@@ -220,66 +222,66 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
 
           {/* Sessions List */}
           {loadingSessions ? (
-            <div className="text-center py-24 space-y-3">
-              <Loader2 className="w-8 h-8 animate-spin text-cyan-400 mx-auto" />
-              <p className="text-slate-400 text-xs">Loading past sessions...</p>
+            <div className="text-center py-20 space-y-2">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+              <p className="text-slate-500 text-xs">Loading sessions from database...</p>
             </div>
           ) : filteredSessions.length === 0 ? (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
-              <History className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="font-bold text-white text-base">No Saved Practice Sessions</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center space-y-3 shadow-xs">
+              <History className="w-10 h-10 text-slate-300 mx-auto" />
+              <h3 className="font-bold text-slate-800 text-sm">No Saved Sessions Found</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {searchQuery
-                  ? 'No sessions match your search query.'
-                  : 'Complete your first resume-grounded interview to begin tracking your score progression.'}
+                  ? 'No sessions matched your search query.'
+                  : 'Complete your first practice interview to begin logging performance scores.'}
               </p>
               <button
                 onClick={() => {
                   soundFX.playClick();
                   onStartNew();
                 }}
-                className="mt-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
               >
-                Start First Practice Session
+                Start Practice Session
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3">
+            <div className="space-y-3">
               {filteredSessions.map((s) => (
                 <div
                   key={s.id}
                   onClick={() => handleSelectSession(s.id)}
-                  className="bg-slate-900/70 border border-slate-800 hover:border-cyan-500/40 rounded-2xl p-5 shadow-sm hover:shadow-cyan-500/5 transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="bg-white border border-slate-200/80 hover:border-blue-400 rounded-xl p-4 sm:p-5 shadow-xs hover:shadow transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
-                  <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-extrabold text-white text-base">
-                        {s.target_role}
+                      <h3 className="font-bold text-slate-900 text-sm sm:text-base">
+                        {s.target_role || 'Software Engineer'}
                       </h3>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-cyan-300 font-mono border border-slate-700">
-                        {s.interview_type}
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        {s.interview_type || 'Mixed'}
                       </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                        {s.difficulty}
+                      <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {s.difficulty || 'Mid-Level'}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                      <span>Candidate: <strong className="text-slate-200">{s.candidate_name}</strong></span>
+                    <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
+                      <span>Candidate: <strong className="text-slate-800">{s.candidate_name}</strong></span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{s.created_at ? s.created_at.replace('T', ' ').slice(0, 16) : 'Recently'}</span>
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{s.created_at ? s.created_at.slice(0, 10) : 'Recent'}</span>
                       </span>
                       <span>•</span>
-                      <span className="text-[11px] font-mono text-slate-500">{s.evaluation_mode}</span>
+                      <span>{s.question_count || 3} questions</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 flex-shrink-0 self-end sm:self-center">
-                    <div className={`px-4 py-2 rounded-xl text-center border ${getScoreColor(s.overall_score)}`}>
-                      <span className="text-xl font-black block">{Math.round(s.overall_score)}</span>
-                      <span className="text-[9px] uppercase tracking-wider font-bold">Score</span>
+                  <div className="flex items-center gap-3.5 flex-shrink-0 self-end sm:self-center">
+                    <div className={`px-3 py-1.5 rounded-xl text-center border ${getScoreBadgeClass(s.overall_score || 0)}`}>
+                      <span className="text-base font-bold block">{Math.round(s.overall_score || 0)}</span>
+                      <span className="text-[9px] uppercase tracking-wider font-semibold">Score</span>
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -288,19 +290,19 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
                           e.stopPropagation();
                           downloadSessionPdf(s.id, s.candidate_name);
                         }}
-                        className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-cyan-950/40 rounded-lg transition-colors cursor-pointer"
-                        title="Download report PDF"
+                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        title="Download PDF report"
                       >
                         <Download className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(s.id, e)}
-                        className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
-                        title="Delete session"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                        title="Delete session record"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                      <ExternalLink className="w-4 h-4 text-slate-500 hover:text-cyan-400" />
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
                     </div>
                   </div>
                 </div>
@@ -310,99 +312,52 @@ export default function HistoryDashboard({ onViewSessionDetails, onStartNew }) {
         </div>
       )}
 
-      {/* TAB 2: QUESTIONS LEDGER & DUPLICATE SHIELD */}
+      {/* TAB 2: QUESTION INDEX */}
       {activeTab === 'questions' && (
         <div className="space-y-4">
-          {/* Explanation Header */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between text-xs">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                <ShieldCheck className="w-5 h-5" />
+              <div className="p-2 rounded-lg bg-blue-50 text-blue-600 border border-blue-200">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <div className="space-y-0.5">
-                <p className="font-bold text-white text-sm">Smart Duplicate Prevention Engine</p>
-                <p className="text-slate-400 text-xs">
-                  Every asked question is normalized (tokenized, canonical synonyms mapped, boilerplate stripped) and indexed in SQLite to prevent repeats.
-                </p>
+              <div>
+                <p className="font-bold text-slate-900">Duplicate Shield Question Index</p>
+                <p className="text-slate-500 text-xs">Questions recorded across past sessions to guarantee new simulations present fresh concepts.</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 font-mono text-[11px]">
-                {askedQuestions.length} Questions Indexed
-              </span>
-            </div>
+            <span className="px-2.5 py-1 rounded bg-slate-100 text-slate-600 font-mono text-[11px]">
+              {askedQuestions.length} Indexed
+            </span>
           </div>
 
-          {/* Search bar */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={questionSearch}
               onChange={(e) => setQuestionSearch(e.target.value)}
-              placeholder="Search asked questions by concept, topic, or question text..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-900/80 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-400 font-medium placeholder-slate-500"
+              placeholder="Search indexed questions..."
+              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {/* Questions list */}
           {loadingQuestions ? (
-            <div className="text-center py-20 space-y-3">
-              <Loader2 className="w-7 h-7 animate-spin text-cyan-400 mx-auto" />
-              <p className="text-slate-400 text-xs">Loading asked questions ledger...</p>
+            <div className="text-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-12 text-center space-y-2">
-              <BookOpen className="w-10 h-10 text-slate-600 mx-auto" />
-              <h3 className="font-bold text-white text-sm">No Questions Recorded Yet</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Complete a practice session to automatically log questions into the ledger and protect against duplicates in future interviews.
-              </p>
+            <div className="text-center py-10 bg-white rounded-xl border border-slate-200 text-slate-500 text-xs">
+              No questions found.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="space-y-2">
               {filteredQuestions.map((q, idx) => (
-                <div
-                  key={q.id || idx}
-                  className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition-all space-y-2"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {q.concept_id && (
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-500/30">
-                          {q.concept_id}
-                        </span>
-                      )}
-                      {q.topic && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                          {q.topic}
-                        </span>
-                      )}
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                        {q.difficulty || 'Mid-Level'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
-                      <span className="flex items-center gap-1 text-emerald-400">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Times Asked: <strong>{q.times_asked || 1}</strong></span>
-                      </span>
-                      {q.last_asked_at && (
-                        <span>• {q.last_asked_at.replace('T', ' ').slice(0, 16)}</span>
-                      )}
-                    </div>
+                <div key={idx} className="p-3.5 bg-white rounded-xl border border-slate-200 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-blue-600">{q.topic || q.category || 'Technical'}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Count: {q.times_asked || 1}</span>
                   </div>
-
-                  <p className="text-sm font-medium text-slate-200 leading-relaxed">
-                    "{q.question_text}"
-                  </p>
-
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-800/60">
-                    <span>Role: <strong className="text-slate-400">{q.target_role || 'General'}</strong> • Candidate: <strong className="text-slate-400">{q.candidate_name || 'General'}</strong></span>
-                    <span className="text-emerald-400/80 font-mono text-[10px]">DUPLICATE PREVENTED IN FRESH SESSIONS</span>
-                  </div>
+                  <p className="text-slate-800 font-medium">"{q.question_text}"</p>
                 </div>
               ))}
             </div>

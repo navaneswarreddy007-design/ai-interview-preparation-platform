@@ -5,55 +5,38 @@
 @layer base {
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    background-color: #030712;
-    color: #f1f5f9;
+    background-color: #f8fafc;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   code, pre {
     font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Custom dark tactical scrollbars */
+/* Professional clean scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #060a14;
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #94a3b8;
 }
 
-/* Glassmorphism tactical utility */
-.glass-panel {
-  background: rgba(10, 16, 31, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(30, 41, 59, 0.8);
-}
-
-.hud-panel {
-  background: rgba(6, 10, 20, 0.85);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(56, 189, 248, 0.15);
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
-}
-
-.glow-cyan {
-  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.3);
-}
-
-/* Fade in animation */
+/* Subtle fade in animation */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: 0; transform: translateY(3px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

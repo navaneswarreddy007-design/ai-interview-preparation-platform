@@ -409,7 +409,7 @@ export default function CommandCenter({
           </div>
           <span className="text-graphite-700">|</span>
           <span className="text-xs font-mono text-graphite-400 hidden sm:inline">
-            ENGINE: {aiStatus?.enabled ? `${aiStatus.provider} NEURAL` : 'GROUNDED DEMO HEURISTIC'}
+            ENGINE: {aiStatus?.enabled ? `${aiStatus.provider} NEURAL` : 'RULE-BASED EVALUATION ENGINE'}
           </span>
         </div>
 

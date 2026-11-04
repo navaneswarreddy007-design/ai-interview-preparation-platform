@@ -107,57 +107,52 @@ export default function JobMatch({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fadeIn pb-16">
       
       {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckSquare className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Job Description Match & Skill Gap Analysis
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Benchmark your resume against specific job requirements to reveal matched skills, gaps, and targeted prep questions.
-            </p>
-          </div>
-        </div>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          Job Description Match & Skill Alignment
+        </h1>
+        <p className="text-xs text-slate-500">
+          Benchmark your resume profile against any job description to discover matching skills, identify gaps, and practice tailored questions.
+        </p>
       </div>
 
-      {/* Candidate Profile Status Strip */}
-      <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2.5">
-          <FileText className="w-4 h-4 text-cyan-400" />
-          <span className="text-slate-300">
-            Active Resume: <strong className="text-white">{candName}</strong> ({skillsCount} verified skills)
+      {/* Candidate Profile Strip */}
+      <div className="p-3.5 rounded-xl bg-white border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-blue-600" />
+          <span className="text-slate-600">
+            Active Resume: <strong className="text-slate-900">{candName}</strong> ({skillsCount} verified skills)
           </span>
         </div>
         {skillsCount === 0 ? (
           <button
             onClick={onOpenResumeUpload}
-            className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all"
+            className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors"
           >
             Upload Resume First
           </button>
         ) : (
-          <span className="text-emerald-400 font-mono font-semibold">● Ready for comparison</span>
+          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium text-[11px]">
+            Ready for Comparison
+          </span>
         )}
       </div>
 
       {/* Error Message */}
       {errorMsg && (
-        <div className="p-4 bg-rose-950/60 border border-rose-500/40 rounded-xl text-rose-300 text-xs flex items-center gap-2 animate-shake">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-400" />
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2 animate-fadeIn">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Main Form: Target Role & Job Description */}
-      <form onSubmit={handleRunMatch} className="p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-5">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-300">
+      {/* Input Form */}
+      <form onSubmit={handleRunMatch} className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-800">
             Target Job Title / Role:
           </label>
           <input
@@ -165,26 +160,26 @@ export default function JobMatch({
             value={targetRole}
             onChange={(e) => setTargetRole(e.target.value)}
             placeholder="e.g. Senior Full Stack Engineer, AI Engineer..."
-            className="w-full p-3 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-cyan-400"
+            className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
 
-        {/* Quick Sample JD Fillers */}
+        {/* Templates */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-slate-300">
-              Paste Target Job Description (JD):
+            <label className="text-xs font-bold text-slate-800">
+              Paste Target Job Description:
             </label>
-            <span className="text-[11px] text-slate-500">Quick-load templates:</span>
+            <span className="text-[11px] text-slate-400">Quick templates:</span>
           </div>
 
-          <div className="flex flex-wrap gap-2 pb-1">
+          <div className="flex flex-wrap gap-1.5 pb-1">
             {SAMPLE_JDS.map((s, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => handleSelectSampleJd(s)}
-                className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-cyan-300 border border-slate-700 transition-colors"
+                className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 transition-colors"
               >
                 + {s.title}
               </button>
@@ -195,29 +190,29 @@ export default function JobMatch({
             rows={7}
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste complete job description, responsibilities, requirements, and tech stack here..."
-            className="w-full p-4 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-cyan-400 font-mono"
+            placeholder="Paste complete job description requirements, responsibilities, and qualifications..."
+            className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
           />
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-[11px] text-slate-500 max-w-md">
-            Our matcher analyzes core technical requirements without sending private data to public indexes.
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-[11px] text-slate-400">
+            Evaluated locally without external telemetry.
           </p>
 
           <button
             type="submit"
             disabled={isAnalyzing}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-600/25 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 <span>Comparing Qualifications...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Analyze Job Match</span>
               </>
             )}
@@ -225,44 +220,43 @@ export default function JobMatch({
         </div>
       </form>
 
-      {/* Match Results Breakdown */}
+      {/* Match Results */}
       {matchResult && (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="space-y-5 animate-fadeIn">
           
-          {/* Top Score Banner with Explicit Disclaimer */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-            <div className="space-y-2">
-              <span className="text-xs font-mono uppercase tracking-wider text-cyan-400 font-semibold">
-                QUALIFICATION ALIGNMENT INDEX
+          {/* Score Card */}
+          <div className="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                Match Evaluation
               </span>
-              <h3 className="text-xl sm:text-2xl font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900">
                 {matchResult.target_role} Match Summary
               </h3>
-              <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+              <p className="text-xs text-slate-500 max-w-lg leading-relaxed">
                 {matchResult.disclaimer}
               </p>
             </div>
 
-            {/* Score Ring */}
-            <div className="flex-shrink-0 flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950 border border-slate-800 w-36 h-36">
-              <span className="text-3xl sm:text-4xl font-extrabold font-mono text-emerald-400">
+            <div className="flex-shrink-0 flex flex-col items-center justify-center p-4 rounded-xl bg-slate-50 border border-slate-200 w-32 h-32">
+              <span className="text-3xl font-extrabold text-blue-600">
                 {matchResult.alignment_score}%
               </span>
-              <span className="text-[11px] text-slate-400 font-medium mt-1">Skills Matched</span>
-              <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+              <span className="text-[11px] text-slate-500 font-medium mt-0.5">Skills Matched</span>
+              <span className="text-[10px] text-slate-400 font-mono mt-0.5">
                 {matchResult.matched_skills.length} of {matchResult.jd_skills_count}
               </span>
             </div>
           </div>
 
           {/* Matched vs Missing Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            {/* Column 1: Matched Skills with Resume Evidence */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h4 className="font-bold text-sm text-slate-100">
+            {/* Matched Skills */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <h4 className="font-bold text-xs text-slate-900">
                   Matched Competencies ({matchResult.matched_skills.length})
                 </h4>
               </div>
@@ -270,16 +264,16 @@ export default function JobMatch({
               {matchResult.matched_skills.length === 0 ? (
                 <p className="text-xs text-slate-400">No direct technical skill matches found in resume.</p>
               ) : (
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {matchResult.matched_skills.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-1 text-xs">
+                    <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-emerald-400 font-mono">{item.skill}</span>
-                        <span className="text-[10px] bg-emerald-950/60 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                        <span className="font-bold text-slate-900">{item.skill}</span>
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-semibold border border-emerald-200">
                           {item.level}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed italic">
+                      <p className="text-[11px] text-slate-500 italic">
                         "{item.evidence}"
                       </p>
                     </div>
@@ -288,30 +282,30 @@ export default function JobMatch({
               )}
             </div>
 
-            {/* Column 2: Missing / Unverified Skills */}
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-                <XCircle className="w-5 h-5 text-rose-400" />
-                <h4 className="font-bold text-sm text-slate-100">
+            {/* Missing Skills */}
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <XCircle className="w-4 h-4 text-rose-600" />
+                <h4 className="font-bold text-xs text-slate-900">
                   Missing or Absent Skills ({matchResult.missing_skills.length})
                 </h4>
               </div>
 
               {matchResult.missing_skills.length === 0 ? (
-                <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs">
-                  All extracted job requirements are accounted for in your resume profile!
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-xs">
+                  All extracted job requirements are accounted for in your resume!
                 </div>
               ) : (
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {matchResult.missing_skills.map((item, idx) => (
-                    <div key={idx} className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-1 text-xs">
+                    <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-rose-300 font-mono">{item.skill}</span>
-                        <span className="text-[10px] bg-rose-950/60 text-rose-400 px-2 py-0.5 rounded border border-rose-500/30">
-                          {item.importance} Priority
+                        <span className="font-bold text-slate-900">{item.skill}</span>
+                        <span className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.2 rounded font-semibold border border-rose-200">
+                          {item.importance}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                      <p className="text-[11px] text-slate-500">
                         {item.suggestion}
                       </p>
                     </div>
@@ -322,52 +316,27 @@ export default function JobMatch({
 
           </div>
 
-          {/* Actionable Learning Roadmap */}
-          {matchResult.roadmap?.length > 0 && (
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-800">
-                <BookOpen className="w-5 h-5 text-cyan-400" />
-                <h4 className="font-bold text-sm text-slate-100">
-                  Prioritized Preparation Roadmap
-                </h4>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                {matchResult.roadmap.map((step, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-cyan-400 font-bold">FOCUS {idx + 1}</span>
-                      <span className="text-slate-500">{step.timeline}</span>
-                    </div>
-                    <p className="font-bold text-slate-200">{step.topic}</p>
-                    <p className="text-slate-400 text-[11px] leading-relaxed">{step.action}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Targeted Practice Questions tailored to JD */}
+          {/* Recommended Practice Questions */}
           {matchResult.recommended_questions?.length > 0 && (
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-cyan-400" />
-                  <h4 className="font-bold text-sm text-slate-100">
-                    Recommended Questions Tailored to This Job Description
+                  <Target className="w-4 h-4 text-blue-600" />
+                  <h4 className="font-bold text-xs text-slate-900">
+                    Recommended Questions Tailored to This Job
                   </h4>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono">3 QUESTIONS</span>
+                <span className="text-[10px] text-slate-400 font-mono">PRACTICE DRILLS</span>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {matchResult.recommended_questions.map((qText, idx) => (
-                  <div key={idx} className="p-4 rounded-2xl bg-slate-950 border border-slate-800/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-mono text-cyan-400 font-semibold uppercase">
-                        Question #{idx + 1}
+                  <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span className="text-[10px] font-semibold text-blue-600 uppercase">
+                        Question {idx + 1}
                       </span>
-                      <p className="text-slate-200 font-medium text-sm">
+                      <p className="text-slate-800 font-medium text-xs mt-0.5">
                         "{qText}"
                       </p>
                     </div>
@@ -383,10 +352,10 @@ export default function JobMatch({
                             topic: matchResult.target_role
                           });
                         }}
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all shadow-sm"
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors"
                       >
-                        <Play className="w-3.5 h-3.5" />
-                        <span>Practice This Question</span>
+                        <Play className="w-3 h-3" />
+                        <span>Practice</span>
                       </button>
                     )}
                   </div>
