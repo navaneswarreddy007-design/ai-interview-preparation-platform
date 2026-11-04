@@ -13,7 +13,7 @@ WORKDIR /app/frontend
 
 # Copy npm manifests and install dependencies
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install --include=optional
 
 # Copy frontend source and compile static assets to /app/frontend/dist
 COPY frontend/ ./
