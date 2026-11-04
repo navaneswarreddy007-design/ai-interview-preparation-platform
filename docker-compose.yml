@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  prepforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prepforge_platform
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - HOST=0.0.0.0
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-prepforge-production-auth-secret-key-2026}
+      # Optional: Provide Gemini or OpenAI API keys if enabling cloud LLM mode
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      # Mount persistent volume for SQLite database and uploaded candidate resumes
+      - prepforge_db:/app/backend
+      - prepforge_uploads:/app/backend/uploads
+
+volumes:
+  prepforge_db:
+    name: prepforge_sqlite_data
+  prepforge_uploads:
+    name: prepforge_uploaded_resumes

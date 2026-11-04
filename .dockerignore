@@ -1,0 +1,15 @@
+node_modules
+frontend/dist
+backend/__pycache__
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/*.db-journal
+backend/uploads/*
+!backend/uploads/.gitkeep
+.git
+.gitignore
+.env
+.env.local
+.DS_Store
+Thumbs.db

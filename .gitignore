@@ -1,0 +1,19 @@
+.env
+.env.*
+!.env.example
+!.env.production.example
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+
+# Private user data
+backend/uploads/
+backend/interview_prep.db
+backend/*.db
+backend/__pycache__/
+backend/.venv/
+frontend/dist/
+backend/sample_exported_report.pdf
