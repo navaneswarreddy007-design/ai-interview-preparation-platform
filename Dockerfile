@@ -27,7 +27,8 @@ FROM python:3.11-slim AS production
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     HOST=0.0.0.0 \
-    FLASK_ENV=production
+    FLASK_ENV=production \
+    HF_HOME=/app/backend/.cache/huggingface
 
 WORKDIR /app
 
@@ -46,8 +47,13 @@ COPY backend/ ./backend/
 # Copy compiled frontend SPA assets from Stage 1 into frontend/dist
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Create storage directories for persistent volumes
-RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data ./backend/chroma_db ./backend/knowledge_base
+# Create storage directories for persistent volumes and local model cache
+RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data ./backend/chroma_db ./backend/knowledge_base ./backend/.cache/huggingface
+
+# Pre-index RAG knowledge base into ChromaDB during Docker build
+# This bakes the persistent vector store and cached model weights directly into the production image.
+RUN cd backend && python -c "from rag.vector_store import get_vector_store; vs = get_vector_store(); vs.index_knowledge_base()" && \
+    chmod -R u=rwX,go=rX /app/backend/chroma_db /app/backend/uploads /app/backend/.cache
 
 # Configure environment defaults
 ENV DATABASE_PATH=/app/backend/interview_prep.db \
@@ -61,5 +67,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 WORKDIR /app/backend
 
-# Run with Gunicorn production WSGI server
-CMD ["sh", "-c", "exec gunicorn --workers=4 --bind=0.0.0.0:${PORT:-10000} --timeout=120 --access-logfile=- --error-logfile=- wsgi:app"]
+# Run with Gunicorn production WSGI server (Memory-optimized: 1 worker, 2 threads, gthread)
+CMD ["sh", "-c", "exec gunicorn --workers=${WEB_CONCURRENCY:-1} --threads=${GUNICORN_THREADS:-2} --worker-class=gthread --bind=0.0.0.0:${PORT:-10000} --timeout=120 --access-logfile=- --error-logfile=- wsgi:app"]

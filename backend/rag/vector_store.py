@@ -26,6 +26,8 @@ class VectorStoreManager:
     def __init__(self):
         self.persist_dir = Path(config.CHROMA_PERSIST_DIRECTORY)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
+        self._cached_documents = None
+        self._indexing_lock = threading.Lock()
 
         # Initialize persistent ChromaDB client
         self.client = chromadb.PersistentClient(
@@ -39,14 +41,29 @@ class VectorStoreManager:
 
     def _init_collection(self):
         """Get or create the persistent knowledge base collection with cosine similarity."""
-        self.collection = self.client.get_or_create_collection(
-            name=COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine", "description": "PrepForge Technical Interview Reference Corpus"}
-        )
+        try:
+            self.collection = self.client.get_or_create_collection(
+                name=COLLECTION_NAME,
+                metadata={"hnsw:space": "cosine", "description": "PrepForge Technical Interview Reference Corpus"}
+            )
+        except Exception as e:
+            print(f"[PrepForge RAG] Notice getting collection: {e}. Attempting direct create...")
+            try:
+                self.collection = self.client.create_collection(
+                    name=COLLECTION_NAME,
+                    metadata={"hnsw:space": "cosine", "description": "PrepForge Technical Interview Reference Corpus"}
+                )
+            except Exception as inner_e:
+                print(f"[PrepForge RAG] Failed to initialize ChromaDB collection: {inner_e}")
+                raise
 
     def get_status(self) -> Dict[str, Any]:
-        """Return operational health, chunk counts, and storage metrics."""
-        count = self.collection.count()
+        """Return operational health, chunk counts, and storage metrics without forcing embedding model load."""
+        try:
+            count = self.collection.count()
+        except Exception as e:
+            print(f"[PrepForge RAG] Error checking collection count: {e}")
+            count = 0
         docs = self.list_documents()
         return {
             "status": "operational",
@@ -58,6 +75,7 @@ class VectorStoreManager:
             "persist_directory": str(self.persist_dir),
             "embedding_model": EmbeddingManager.get_model_name(),
             "vector_dimension": EmbeddingManager.get_dimension(),
+            "model_resident": EmbeddingManager.is_model_loaded(),
             "vector_store": {
                 "status": "operational",
                 "total_indexed_chunks": count,
@@ -66,32 +84,41 @@ class VectorStoreManager:
             }
         }
 
-    def list_documents(self) -> List[Dict[str, Any]]:
-        """List all unique documents currently indexed in the vector store with chunk counts."""
-        count = self.collection.count()
-        if count == 0:
+    def list_documents(self, force_refresh: bool = False) -> List[Dict[str, Any]]:
+        """List all unique documents currently indexed in the vector store with chunk counts (cached in-memory)."""
+        if not force_refresh and self._cached_documents is not None:
+            return self._cached_documents
+
+        try:
+            count = self.collection.count()
+            if count == 0:
+                self._cached_documents = []
+                return []
+
+            # Retrieve all metadata entries from collection
+            results = self.collection.get(include=["metadatas"])
+            metadatas = results.get("metadatas") or []
+
+            doc_map: Dict[str, Dict[str, Any]] = {}
+            for meta in metadatas:
+                if not meta:
+                    continue
+                doc_name = meta.get("document_name", "Unknown")
+                if doc_name not in doc_map:
+                    doc_map[doc_name] = {
+                        "document_name": doc_name,
+                        "category": meta.get("category", "General"),
+                        "document_hash": meta.get("document_hash", ""),
+                        "source": meta.get("source", ""),
+                        "chunk_count": 0
+                    }
+                doc_map[doc_name]["chunk_count"] += 1
+
+            self._cached_documents = sorted(list(doc_map.values()), key=lambda d: d["document_name"])
+            return self._cached_documents
+        except Exception as e:
+            print(f"[PrepForge RAG] Error listing documents: {e}")
             return []
-
-        # Retrieve all metadata entries from collection
-        results = self.collection.get(include=["metadatas"])
-        metadatas = results.get("metadatas") or []
-
-        doc_map: Dict[str, Dict[str, Any]] = {}
-        for meta in metadatas:
-            if not meta:
-                continue
-            doc_name = meta.get("document_name", "Unknown")
-            if doc_name not in doc_map:
-                doc_map[doc_name] = {
-                    "document_name": doc_name,
-                    "category": meta.get("category", "General"),
-                    "document_hash": meta.get("document_hash", ""),
-                    "source": meta.get("source", ""),
-                    "chunk_count": 0
-                }
-            doc_map[doc_name]["chunk_count"] += 1
-
-        return sorted(list(doc_map.values()), key=lambda d: d["document_name"])
 
     def is_document_indexed(self, doc_name: str, doc_hash: Optional[str] = None) -> bool:
         """Check if a document is already indexed, optionally matching file content hash."""
@@ -110,6 +137,7 @@ class VectorStoreManager:
         """Remove all chunks associated with a specific document."""
         try:
             self.collection.delete(where={"document_name": document_name})
+            self._cached_documents = None
             return True
         except Exception as e:
             print(f"[PrepForge RAG] Error deleting document '{document_name}': {e}")
@@ -177,6 +205,7 @@ class VectorStoreManager:
             documents=chunk_texts,
             metadatas=metadatas
         )
+        self._cached_documents = None
 
         return {
             "status": "success",
@@ -194,44 +223,59 @@ class VectorStoreManager:
     ) -> Dict[str, Any]:
         """
         Batch index all legitimate reference documents in the knowledge base directory.
+        Thread-safe to prevent concurrent indexing across multiple worker threads.
         """
-        kb_dir = Path(directory or config.KNOWLEDGE_BASE_DIR)
-        if not kb_dir.exists():
-            return {"status": "error", "message": f"Knowledge base directory '{kb_dir}' not found."}
+        with self._indexing_lock:
+            # Re-check collection count under lock to prevent redundant re-indexing
+            if not force_reindex and self.collection.count() > 0:
+                print(f"[PrepForge RAG] Knowledge base already indexed ({self.collection.count()} chunks). Skipping redundant re-indexing.")
+                return {
+                    "total_files_scanned": 0,
+                    "indexed": 0,
+                    "skipped": 0,
+                    "total_new_chunks": 0,
+                    "details": [],
+                    "message": "already_indexed"
+                }
 
-        files = [
-            f for f in kb_dir.iterdir()
-            if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
-        ]
+            kb_dir = Path(directory or config.KNOWLEDGE_BASE_DIR)
+            if not kb_dir.exists():
+                return {"status": "error", "message": f"Knowledge base directory '{kb_dir}' not found."}
 
-        results = []
-        indexed_count = 0
-        skipped_count = 0
-        total_chunks = 0
+            files = [
+                f for f in kb_dir.iterdir()
+                if f.is_file() and f.suffix.lower() in SUPPORTED_EXTENSIONS
+            ]
 
-        for file_path in sorted(files, key=lambda f: f.name):
-            try:
-                res = self.index_document(file_path, force_reindex=force_reindex)
-                results.append(res)
-                if res.get("status") == "success":
-                    indexed_count += 1
-                    total_chunks += res.get("chunks_indexed", 0)
-                elif res.get("status") == "skipped":
-                    skipped_count += 1
-            except Exception as e:
-                results.append({
-                    "status": "error",
-                    "document_name": file_path.name,
-                    "error": str(e)
-                })
+            results = []
+            indexed_count = 0
+            skipped_count = 0
+            total_chunks = 0
 
-        return {
-            "total_files_scanned": len(files),
-            "indexed": indexed_count,
-            "skipped": skipped_count,
-            "total_new_chunks": total_chunks,
-            "details": results
-        }
+            for file_path in sorted(files, key=lambda f: f.name):
+                try:
+                    res = self.index_document(file_path, force_reindex=force_reindex)
+                    results.append(res)
+                    if res.get("status") == "success":
+                        indexed_count += 1
+                        total_chunks += res.get("chunks_indexed", 0)
+                    elif res.get("status") == "skipped":
+                        skipped_count += 1
+                except Exception as e:
+                    results.append({
+                        "status": "error",
+                        "document_name": file_path.name,
+                        "error": str(e)
+                    })
+
+            self._cached_documents = None
+            return {
+                "total_files_scanned": len(files),
+                "indexed": indexed_count,
+                "skipped": skipped_count,
+                "total_new_chunks": total_chunks,
+                "details": results
+            }
 
     def search(
         self,
@@ -249,7 +293,11 @@ class VectorStoreManager:
         4. Does not force Top-K if fewer relevant chunks pass the threshold.
         """
         clean_query = query.strip() if query else ""
-        if not clean_query or self.collection.count() == 0:
+        try:
+            if not clean_query or self.collection.count() == 0:
+                return []
+        except Exception as e:
+            print(f"[PrepForge RAG] Warning checking collection count in search: {e}")
             return []
 
         # Determine effective minimum similarity threshold
@@ -430,6 +478,7 @@ class VectorStoreManager:
         try:
             self.client.delete_collection(COLLECTION_NAME)
             self._init_collection()
+            self._cached_documents = []
             return True
         except Exception as e:
             print(f"[PrepForge RAG] Error clearing collection: {e}")

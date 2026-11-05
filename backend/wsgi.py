@@ -2,8 +2,8 @@
 Production WSGI Entrypoint for AI POWERED INTERVIEW PREPARATION PLATFORM.
 
 Compatible with:
-- Gunicorn (Linux/Container):
-    gunicorn --workers=4 --bind=0.0.0.0:5000 wsgi:app
+- Gunicorn (Linux/Container - Memory Optimized for 512 MB):
+    gunicorn --workers=1 --threads=2 --worker-class=gthread --bind=0.0.0.0:10000 wsgi:app
 - Waitress (Windows/Cross-platform):
     python wsgi.py
     waitress-serve --port=5000 wsgi:app

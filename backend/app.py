@@ -27,11 +27,12 @@ database.init_db()
 def _bootstrap_rag():
     try:
         vs = get_vector_store()
-        if vs.collection.count() == 0:
+        chunk_count = vs.collection.count()
+        if chunk_count == 0:
             print("[PrepForge RAG] Empty vector collection detected. Indexing knowledge base...")
             vs.index_knowledge_base()
         else:
-            print(f"[PrepForge RAG] Vector store ready with {vs.collection.count()} indexed chunks.")
+            print(f"[PrepForge RAG] Vector store ready with {chunk_count} indexed chunks (model lazy-loaded: True).")
     except Exception as e:
         print(f"[PrepForge RAG] Startup indexing check: {e}")
 
