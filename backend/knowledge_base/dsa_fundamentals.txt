@@ -1,0 +1,63 @@
+# Data Structures & Algorithms (DSA) Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - Algorithms & Complexity
+Category: Data Structures & Algorithms
+Target Competencies: Asymptotic Analysis, Arrays, Hash Tables, Trees, Graphs, Dynamic Programming
+
+## Section 1: Asymptotic Complexity & Big-O Notation
+Big-O notation describes the upper bound on the time or memory space required by an algorithm as the input size N grows towards infinity:
+
+- O(1) Constant Time: Hash table point lookup, array index access, stack push/pop. Execution time is independent of input size.
+- O(log N) Logarithmic Time: Binary search in a sorted array, search in a balanced binary search tree (AVL, Red-Black). Each iteration cuts the search space in half.
+- O(N) Linear Time: Single traversal through an unsorted array or linked list, linear search, bucket sort.
+- O(N log N) Linearithmic Time: Comparison-based sorting algorithms (Merge Sort, Heap Sort, Quick Sort average case), Divide-and-Conquer pattern.
+- O(N^2) Quadratic Time: Nested loops over input size N, Bubble Sort, Selection Sort, all-pairs comparisons.
+- O(2^N) Exponential Time: Generating all subsets (power set), recursive Fibonacci without memoization.
+- O(N!) Factorial Time: Generating all permutations of an array, Traveling Salesperson brute force.
+
+Master Theorem for Divide-and-Conquer Recurrences:
+For recurrences of the form T(N) = a * T(N/b) + f(N):
+- Case 1: If f(N) = O(N^(log_b(a) - epsilon)), then T(N) = Theta(N^(log_b(a))).
+- Case 2: If f(N) = Theta(N^(log_b(a)) * log^k(N)), then T(N) = Theta(N^(log_b(a)) * log^(k+1)(N)).
+- Case 3: If f(N) = Omega(N^(log_b(a) + epsilon)), and regularity condition holds, then T(N) = Theta(f(N)).
+
+## Section 2: Core Data Structures Internals
+1. Arrays vs Linked Lists:
+- Dynamic Array (e.g., Python List, Java ArrayList, C++ vector): Contiguous block of memory. O(1) random index access. O(1) amortized insertion at tail; O(N) insertion at head/middle due to shifting elements. When capacity is exceeded, doubles allocated memory buffer (geometric resizing), copying elements in O(N) time.
+- Singly / Doubly Linked List: Non-contiguous nodes connected via pointers. O(1) insertion/deletion once the pointer is reached. O(N) traversal lookup. Lacks CPU L1/L2 cache locality compared to contiguous arrays.
+2. Hash Tables & Collision Resolution:
+- Computes hash(key) % capacity to determine the storage bucket index.
+- Separate Chaining: Each bucket holds a linked list (or balanced BST once bucket size > 8, as in Java 8 HashMap).
+- Open Addressing: All elements reside in the table array directly. Collisions resolved by Linear Probing (hash + i), Quadratic Probing (hash + c1*i + c2*i^2), or Double Hashing.
+- Load Factor: Alpha = N / M. When load factor exceeds threshold (typically 0.75), the table rehashes into a doubled array buffer.
+3. Binary Search Trees (BST) & Balanced Trees:
+- BST Property: For every node X, all keys in the left subtree < X.key, and all keys in the right subtree > X.key.
+- Degenerate BST: Inserting sorted elements yields a skewed O(N) linked list.
+- Self-Balancing Trees (AVL Trees & Red-Black Trees): Enforce height balance constraints through tree rotations (Left Rotation, Right Rotation, Left-Right, Right-Left). Guarantees O(log N) worst-case search, insertion, and deletion.
+
+## Section 3: Graph Traversal & Shortest Path Algorithms
+1. Graph Representations:
+- Adjacency Matrix: Space complexity O(V^2). Checking edge existence is O(1). Ideal for dense graphs.
+- Adjacency List: Space complexity O(V + E). Iterating neighbors is O(degree). Ideal for sparse graphs.
+2. Breadth-First Search (BFS):
+- Uses a Queue data structure (FIFO).
+- Explores vertices level-by-level. Finds the shortest path in unweighted graphs.
+- Time: O(V + E), Space: O(V).
+3. Depth-First Search (DFS):
+- Uses recursion or an explicit Stack (LIFO).
+- Explores paths as deep as possible before backtracking.
+- Applications: Cycle detection, Topological Sorting (DAGs), Strongly Connected Components (Kosaraju's / Tarjan's algorithm).
+4. Shortest Path Algorithms:
+- Dijkstra's Algorithm: Computes shortest path from single source to all vertices in non-negative weighted graphs. Uses a Min-Heap priority queue. Time complexity: O((V + E) log V).
+- Bellman-Ford Algorithm: Handles graphs with negative edge weights; detects negative cycles. Time: O(V * E).
+- Floyd-Warshall: All-pairs shortest path dynamic programming. Time: O(V^3).
+
+## Section 4: Dynamic Programming Patterns
+Dynamic Programming solves complex problems by breaking them into overlapping subproblems with optimal substructure:
+1. Top-Down with Memoization: Recursive approach that caches computed subproblem results in a hash map or array.
+2. Bottom-Up with Tabulation: Iterative approach that fills a DP table starting from base cases, often allowing space optimization from O(N^2) to O(N) or O(1).
+3. Classic DP Patterns:
+- 0/1 Knapsack: Decisions whether to include item i given remaining capacity W (dp[i][w] = max(dp[i-1][w], val[i] + dp[i-1][w-wt[i]])).
+- Longest Common Subsequence (LCS): String alignment and diff tools.
+- Longest Increasing Subsequence (LIS): Solvable in O(N^2) with DP or O(N log N) using binary search with patience sorting.
+- Interval DP: Matrix Chain Multiplication, Burst Balloons.
+

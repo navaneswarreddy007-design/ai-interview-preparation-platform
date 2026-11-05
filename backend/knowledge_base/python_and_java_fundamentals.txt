@@ -1,0 +1,51 @@
+# Python & Java Fundamentals Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - Core Programming Languages
+Category: Python & Java Fundamentals
+Target Competencies: Memory Management, Concurrency Models, Garbage Collection, OOP Architecture
+
+## Section 1: Python Internals & Architecture
+1. The Global Interpreter Lock (GIL):
+- A mutex lock in CPython (the reference Python implementation) that prevents multiple native threads from executing Python bytecode simultaneously.
+- Purpose: Protects CPython's internal memory management and reference counts from race conditions.
+- Concurrency implications: CPU-bound tasks do not achieve true parallelism using multi-threading in Python. To achieve parallel CPU execution, developers must use the multiprocessing module (spawning separate OS processes with isolated memory and separate GILs) or offload calculations to C extensions (NumPy, PyTorch).
+- For I/O-bound tasks (network requests, database queries, file reading), Python threads or asyncio coroutines achieve high concurrency because threads release the GIL while waiting for OS I/O operations.
+- Python 3.13+ introduces experimental free-threaded CPython (PEP 703 / no-GIL builds).
+2. Python Memory Management & Garbage Collection:
+- Reference Counting: Primary GC mechanism. Every Python object maintains an ob_refcnt counter in its PyObject header. Incremented when assigned or passed; decremented when variable goes out of scope or is deleted (del). When ob_refcnt hits 0, memory is immediately deallocated.
+- Cyclic Garbage Collector: Reference counting cannot detect circular references (e.g., Object A references B, and B references A). Python runs a generational garbage collector (Generations 0, 1, 2) based on the heuristic that most objects die young. Older objects surviving collection thresholds are promoted to higher generations.
+- Memory Allocation (PyMalloc): Small object allocator managing memory in arenas (256 KB), pools (4 KB), and blocks (up to 512 bytes) to minimize OS system call overhead.
+3. Generators, Iterators, and Memory Efficiency:
+- Iterator: Any object implementing __iter__() and __next__() protocols.
+- Generator: A function containing the yield keyword. Produces values lazily on-demand, executing with O(1) auxiliary memory rather than allocating entire collections in RAM (e.g., range() vs precomputed list).
+4. Decorators & Closures:
+- A closure is an inner function that retains access to variables in its enclosing lexical scope even after the outer function has finished executing.
+- A decorator is syntactic sugar (@decorator) that accepts a function as input, extends or modifies its behavior, and returns a callable wrapper.
+
+## Section 2: Java Internals & Architecture
+1. JVM Architecture & Memory Model:
+- ClassLoader Subsystem: Loads (.class bytecode), Links (Verify, Prepare, Resolve), and Initializes classes into memory.
+- JVM Memory Areas:
+  - Heap: Shared runtime data area where all class instances and arrays are allocated. Divided into Young Generation (Eden space, Survivor S0, Survivor S1) and Old / Tenured Generation.
+  - JVM Stack: Thread-private memory containing stack frames. Each method invocation pushes a frame holding local variables, operand stack, and frame data. StackOverflowError occurs when recursion exceeds stack depth.
+  - Native Method Stack: Dedicated to native code written in C/C++ via JNI (Java Native Interface).
+  - Program Counter (PC) Register: Holds the address of the currently executing JVM instruction for each thread.
+  - Metaspace (replaced PermGen in Java 8): Resides in native memory outside the JVM heap, storing class metadata and static variables.
+2. Java Garbage Collectors:
+- Serial GC: Single-threaded collector for small client applications (-XX:+UseSerialGC).
+- Parallel GC: Multi-threaded throughput-focused collector (-XX:+UseParallelGC).
+- G1 GC (Garbage-First): Default in modern Java. Partitions the heap into equal-sized regional blocks, prioritizes regions with the most garbage to minimize stop-the-world (STW) pauses (-XX:+UseG1GC).
+- ZGC & Shenandoah: Ultra-low latency concurrent garbage collectors achieving sub-millisecond pause times regardless of multi-terabyte heap sizes.
+3. Object-Oriented Principles in Java:
+- Encapsulation: Bundling data and methods operating on that data within classes, hiding internal state via access modifiers (private, protected, public).
+- Polymorphism:
+  - Compile-Time (Static) Polymorphism: Method Overloading (same method name, different parameter signatures).
+  - Runtime (Dynamic) Polymorphism: Method Overriding (subclass provides specific implementation of parent method; resolved via dynamic method dispatch using the vtable).
+- Inheritance: Subclasses inherit state and behavior from a superclass (extends keyword). Java avoids multiple class inheritance to prevent the Diamond Problem.
+- Abstraction: Hiding implementation details behind Interfaces (implements) or Abstract Classes. An interface defines a contract of capabilities (multiple interfaces allowed); an abstract class represents an "is-a" relationship and can maintain mutable instance state and constructors.
+4. Exception Handling Hierarchy:
+- Throwable is the root class.
+- Error: Serious unchecked problems that a reasonable application should not try to catch (OutOfMemoryError, StackOverflowError).
+- Exception:
+  - Checked Exceptions: Subclasses of Exception (excluding RuntimeException). Verified at compile-time; must be handled via try-catch or declared via throws (e.g., IOException, SQLException).
+  - Unchecked Exceptions: Subclasses of RuntimeException. Occur during execution due to programming flaws (NullPointerException, ArrayIndexOutOfBoundsException, IllegalArgumentException).
+

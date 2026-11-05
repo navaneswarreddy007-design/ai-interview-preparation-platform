@@ -1,0 +1,78 @@
+# Database Management Systems (DBMS) & SQL Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - Database Systems
+Category: DBMS & SQL
+Target Competencies: Relational Modeling, Transaction Processing, Indexing Internals, Distributed Data
+
+## Section 1: ACID Properties of Transactions
+In database systems, a transaction is an atomic sequence of database operations executed as a single logical unit of work. To ensure integrity and correctness, relational database engines enforce ACID guarantees:
+
+1. Atomicity: The "all-or-nothing" rule. Either all updates in a transaction are committed to persistent disk, or the entire transaction is rolled back using write-ahead logs (WAL). If a system crash occurs mid-flight, uncommitted changes are undone during crash recovery.
+2. Consistency: A transaction transitions the database from one valid state to another valid state, satisfying all declared schema constraints, foreign key cascades, data types, and unique indexes.
+3. Isolation: Concurrent execution of transactions yields the same state that would be obtained if the transactions executed serially without interference.
+4. Durability: Once a transaction commits, its modifications are permanently recorded on non-volatile storage and survive subsequent power failures or server crashes.
+
+### Bank Transaction Example (Classic Account Transfer)
+Consider transferring $500 from Account A (initial balance $1,000) to Account B (initial balance $500):
+- Step 1: Read balance of Account A ($1,000).
+- Step 2: Deduct $500 from Account A ($1,000 - $500 = $500).
+- Step 3: Read balance of Account B ($500).
+- Step 4: Add $500 to Account B ($500 + $500 = $1,000).
+
+How ACID guarantees protect this bank transaction:
+- Atomicity (All-or-Nothing): If a power failure, database crash, or network timeout occurs immediately after Step 2 (after Account A has been debited but before Account B is credited), the database engine aborts the transaction. During crash recovery, the write-ahead log (WAL) undoes Step 2, restoring Account A to $1,000. Money does not vanish; both operations succeed or neither does.
+- Consistency (State Invariants & Schema Constraints): The total sum of money across accounts must be conserved. Total balance before the transfer ($1,000 + $500 = $1,500) must equal total balance after the transfer ($500 + $1,000 = $1,500). Additionally, integrity constraints such as CHECK (balance >= 0) ensure that accounts cannot be overdrawn beyond allowed limits.
+- Isolation (Concurrency & Race Prevention): If Account A attempts a simultaneous $400 withdrawal at an ATM while this $500 transfer is in-flight, isolation guarantees that neither transaction reads dirty or uncommitted intermediate balances. Using row-level locks or Multi-Version Concurrency Control (MVCC) snapshot isolation, the transactions execute as if scheduled sequentially, preventing double-spending anomalies.
+- Durability (Persistent Commitment): Once the COMMIT statement successfully returns, the updated account balances ($500 in Account A, $1,000 in Account B) are permanently written to persistent storage via WAL flushes (fsync). Even if the physical server loses power an instant later, the committed updates survive and remain valid upon reboot.
+
+## Section 2: Transaction Isolation Levels and Concurrency Anomalies
+The ANSI/ISO SQL standard defines four transaction isolation levels designed to balance data consistency against parallel throughput:
+
+1. Read Uncommitted: Transactions can read uncommitted data written by other concurrent transactions. Suffers from Dirty Reads, Non-Repeatable Reads, and Phantom Reads.
+2. Read Committed: Guarantees that any data read was committed before the read occurred. Prevents Dirty Reads. However, Non-Repeatable Reads (reading the same row twice within a transaction yields different values because another transaction modified and committed it) and Phantom Reads can still occur. Default in PostgreSQL, Oracle, and SQL Server.
+3. Repeatable Read: Ensures that any data read once by a transaction will remain identical on subsequent reads within that transaction. Prevents Dirty Reads and Non-Repeatable Reads. In PostgreSQL, Repeatable Read is implemented via Multi-Version Concurrency Control (MVCC) snapshot isolation, which also prevents phantom reads. In MySQL InnoDB, Repeatable Read is the default level and uses Next-Key Locking (record locks + gap locks) to eliminate phantom rows.
+4. Serializable: The strictest isolation level. Concurrent transactions execute with results mathematically equivalent to purely serial execution. Implemented via two-phase locking (2PL) or Serializable Snapshot Isolation (SSI).
+
+## Section 3: Indexing Internals – B-Tree vs Hash Indexes
+Database indexes are secondary data structures that accelerate search queries from O(N) linear scans to logarithmic or constant lookups:
+
+1. B-Tree Indexes (and B+ Trees):
+- Balanced search tree structures where leaf nodes reside at the exact same depth and are linked sequentially as a doubly linked list.
+- Supports equality lookups (=), prefix matching (LIKE 'pattern%'), and range scans (<, <=, >, >=, BETWEEN).
+- Lookup, insertion, and deletion complexity is O(log N).
+- Used as the default primary index in PostgreSQL, MySQL InnoDB, and SQLite.
+2. Hash Indexes:
+- Computes a hash key from column values to point directly to row buckets.
+- Provides O(1) average lookup time for point equality queries (WHERE id = 50).
+- Trade-off: Completely useless for range queries, sorting (ORDER BY), or partial prefix matches because hashes destroy order.
+3. Index Trade-offs and Write Amplification:
+- While indexes accelerate SELECT queries, every INSERT, UPDATE, or DELETE operation incurs index maintenance overhead.
+- Adding redundant indexes bloats buffer pool cache memory and increases transaction write amplification on disk.
+
+## Section 4: Database Normalization
+Normalization organizes table schemas to minimize data redundancy and prevent insertion, update, and deletion anomalies:
+- First Normal Form (1NF): Column values must be atomic (indivisible), and each row must be uniquely identifiable with a primary key.
+- Second Normal Form (2NF): Must be in 1NF, and all non-key columns must be fully functionally dependent on the entire primary key (eliminates partial key dependencies in composite keys).
+- Third Normal Form (3NF): Must be in 2NF, and no non-key attribute can depend transitively on the primary key through another non-key attribute (X -> Y -> Z).
+- Boyce-Codd Normal Form (BCNF): A stricter version of 3NF where for every functional dependency X -> Y, X must be a superkey.
+
+## Section 5: Query Optimization and SQL Join Strategies
+Relational engines compile SQL queries into query plans through a cost-based optimizer (CBO):
+- Sequential Scan (Seq Scan): Scans every page and row in the table. Optimal for small tables or when retrieving >25% of total rows.
+- Index Scan: Traverses the index tree to locate matching row pointers, then reads heap pages to retrieve tuple data.
+- Index Only Scan: Reads all requested columns directly from index leaf pages without fetching the underlying heap table pages (requires covering indexes or INCLUDE clauses).
+- Bitmap Index Scan: Gathers matching physical row pointers into an in-memory bitmap, then scans table pages in physical disk order to minimize random I/O.
+
+### SQL Join Strategies & Algorithmic Complexity:
+Relational query optimizers evaluate three primary physical join strategies to combine datasets:
+1. Nested Loop Join:
+- Algorithm: Iterates through each row of the outer table and probes the inner table for matching keys.
+- Complexity: O(M * log N) when the inner table possesses a B-Tree index on the join key; degrades to O(M * N) if unindexed.
+- Best used for: Small outer driving tables joined against heavily indexed inner tables (frequent in OLTP point lookups).
+2. Hash Join:
+- Algorithm: In the build phase, the database reads the smaller input table into memory and constructs an in-memory hash table keyed by the join attribute. In the probe phase, it streams the larger table row-by-row, hashes the join attribute, and probes the in-memory hash table for matches.
+- Complexity: O(M + N) linear time complexity for equality joins. Requires sufficient work_mem / RAM for the hash table; spills to disk (hybrid hash join) if memory is exhausted.
+- Best used for: Large unsorted datasets with equality join predicates (WHERE a.id = b.a_id). Cannot handle range joins.
+3. Merge Join (Sort-Merge Join):
+- Algorithm: Both input tables are first sorted by the join key (or scanned directly in order using existing B-Tree indexes). The engine then advances cursors down both inputs simultaneously, emitting matching records in a single coordinated pass.
+- Complexity: O(M + N) if inputs are already sorted via an index, or O(M log M + N log N) if an explicit sort step is needed.
+- Best used for: Large tables with existing index sorting or range join predicates (<=, >=). Highly predictable memory footprint.

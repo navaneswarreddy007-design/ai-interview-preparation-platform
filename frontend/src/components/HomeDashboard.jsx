@@ -24,7 +24,8 @@ import {
   AlertCircle,
   ExternalLink,
   ChevronRight,
-  Bot
+  Bot,
+  BookOpen
 } from 'lucide-react';
 import { voicePersona } from '../utils/speechPersona';
 import { soundFX } from '../utils/soundEffects';
@@ -39,6 +40,7 @@ export default function HomeDashboard({
   onStartInterviewPractice,
   onOpenResumeAnalysis,
   onOpenJobMatch,
+  onOpenKnowledge,
   onOpenHistory,
   onLoadSampleResume,
   onOpenSettings
@@ -189,6 +191,17 @@ export default function HomeDashboard({
               >
                 <FileText className="w-4 h-4 text-slate-500" />
                 <span>{hasResume ? 'View Resume Profile' : 'Upload Resume'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  soundFX.playClick();
+                  onOpenKnowledge && onOpenKnowledge();
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-xl text-sm border border-blue-200 transition-all"
+              >
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                <span>Knowledge Assistant</span>
               </button>
 
               {!hasResume && (

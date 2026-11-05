@@ -3,7 +3,7 @@ import uuid
 import json
 import io
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -16,8 +16,26 @@ from pdf_generator import generate_pdf_report
 from assistant import process_assistant_command
 import database
 
+# RAG & Knowledge Base Engine
+from rag.vector_store import get_vector_store
+from rag.generator import answer_query_with_rag
+
 # Initialize database
 database.init_db()
+
+# Auto-index knowledge base on startup if empty or unindexed
+def _bootstrap_rag():
+    try:
+        vs = get_vector_store()
+        if vs.collection.count() == 0:
+            print("[PrepForge RAG] Empty vector collection detected. Indexing knowledge base...")
+            vs.index_knowledge_base()
+        else:
+            print(f"[PrepForge RAG] Vector store ready with {vs.collection.count()} indexed chunks.")
+    except Exception as e:
+        print(f"[PrepForge RAG] Startup indexing check: {e}")
+
+_bootstrap_rag()
 
 # Resolve production frontend distribution folder
 FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))
@@ -232,7 +250,7 @@ def health_check():
     ai_status = config.get_ai_status()
     return jsonify({
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "ai_status": ai_status,
         "database": "connected"
     })
@@ -770,6 +788,126 @@ def api_match_job():
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Failed to match job description: {str(e)}"}), 500
+
+# -----------------------------------------------------------------------------
+# RAG & Knowledge Base Endpoints
+# -----------------------------------------------------------------------------
+@app.route('/api/rag/status', methods=['GET'])
+def api_rag_status():
+    try:
+        vs = get_vector_store()
+        return jsonify(vs.get_status())
+    except Exception as e:
+        return jsonify({"error": f"Failed to get RAG status: {str(e)}"}), 500
+
+@app.route('/api/rag/documents', methods=['GET'])
+def api_rag_documents():
+    try:
+        vs = get_vector_store()
+        return jsonify({"documents": vs.list_documents()})
+    except Exception as e:
+        return jsonify({"error": f"Failed to list documents: {str(e)}"}), 500
+
+@app.route('/api/rag/retrieve', methods=['POST'])
+def api_rag_retrieve():
+    try:
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            data = {}
+        query = (data.get("query") or "").strip()
+        if not query:
+            return jsonify({"error": "Query string is required."}), 400
+        top_k = int(data.get("top_k", config.RAG_TOP_K))
+        category = data.get("category")
+        min_sim = float(data.get("min_similarity", getattr(config, "RAG_MIN_SIMILARITY", 0.28)))
+
+        vs = get_vector_store()
+        chunks = vs.search(query=query, top_k=top_k, category_filter=category, score_threshold=min_sim)
+        return jsonify({
+            "query": query,
+            "chunks": chunks,
+            "count": len(chunks)
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to retrieve knowledge chunks: {str(e)}"}), 500
+
+@app.route('/api/rag/query', methods=['POST'])
+def api_rag_query():
+    try:
+        data = request.get_json(silent=True) or {}
+        if not isinstance(data, dict):
+            data = {}
+        query = (data.get("query") or "").strip()
+        if not query:
+            return jsonify({"error": "Question is required."}), 400
+        top_k = int(data.get("top_k", config.RAG_TOP_K))
+        category = data.get("category")
+        min_sim = float(data.get("min_similarity", getattr(config, "RAG_MIN_SIMILARITY", 0.28)))
+
+        result = answer_query_with_rag(query=query, top_k=top_k, category_filter=category, min_similarity=min_sim)
+        return jsonify(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"RAG query generation failed: {str(e)}"}), 500
+
+@app.route('/api/rag/ingest', methods=['POST'])
+def api_rag_ingest():
+    try:
+        vs = get_vector_store()
+        
+        # Action 1: Reindex knowledge base directory
+        if request.is_json and request.json.get("action") == "reindex_all":
+            force = bool(request.json.get("force", False))
+            res = vs.index_knowledge_base(force_reindex=force)
+            return jsonify({"success": True, "result": res})
+
+        # Action 2: File upload (PDF, DOCX, TXT, MD)
+        if 'file' in request.files:
+            file = request.files['file']
+            if not file or file.filename == '':
+                return jsonify({"error": "No file selected."}), 400
+
+            ext = Path(file.filename).suffix.lower()
+            if ext not in {".txt", ".md", ".pdf", ".docx"}:
+                return jsonify({"error": f"Unsupported file type '{ext}'. Allowed: .pdf, .docx, .txt, .md"}), 400
+
+            filename = secure_filename(file.filename)
+            category = request.form.get("category")
+            save_path = config.KNOWLEDGE_BASE_DIR / filename
+            file.save(str(save_path))
+
+            # Validate file size (max 10MB)
+            if save_path.stat().st_size > config.MAX_CONTENT_LENGTH:
+                save_path.unlink(missing_ok=True)
+                return jsonify({"error": "File exceeds 10MB size limit."}), 400
+
+            res = vs.index_document(save_path, category=category, force_reindex=True)
+            return jsonify({"success": True, "result": res}), 201
+
+        # Action 3: JSON payload with direct text content
+        if request.is_json and "content" in request.json:
+            doc_name = secure_filename(request.json.get("document_name", "custom_note.txt"))
+            if not doc_name.endswith((".txt", ".md")):
+                doc_name += ".txt"
+            content = request.json.get("content", "").strip()
+            if not content:
+                return jsonify({"error": "Content cannot be empty."}), 400
+            category = request.json.get("category", "Custom Reference")
+            save_path = config.KNOWLEDGE_BASE_DIR / doc_name
+            with open(save_path, "w", encoding="utf-8") as f:
+                f.write(f"Category: {category}\n\n{content}")
+
+            res = vs.index_document(save_path, category=category, force_reindex=True)
+            return jsonify({"success": True, "result": res}), 201
+
+        return jsonify({"error": "Please provide a file or text content to ingest."}), 400
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to ingest knowledge document: {str(e)}"}), 500
 
 # -----------------------------------------------------------------------------
 # Production SPA Static File Server

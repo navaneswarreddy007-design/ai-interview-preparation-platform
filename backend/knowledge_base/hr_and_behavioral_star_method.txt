@@ -1,0 +1,46 @@
+# HR & Behavioral Interview Preparation Guide
+Source: PrepForge Behavioral Interview Coaching Curriculum - Competency Frameworks
+Category: HR & Behavioral
+Target Competencies: STAR Methodology, Conflict Resolution, Engineering Leadership, Ownership
+
+## Section 1: The STAR Framework for Behavioral Interviews
+Top tech organizations (Google, Amazon, Meta, Microsoft) use behavioral questions ("Tell me about a time when...") based on the principle that past behavior predicts future performance. Responses must follow the structured STAR model:
+
+1. Situation (15-20% of response time):
+- Set the business and technical context concisely. State the company, the team mission, the scale, and the primary constraint or challenge faced.
+- Example: "At CloudScale Systems, our core billing microservice experienced unpredictable latency spikes during month-end invoice processing, impacting enterprise customer renewals."
+2. Task (10-15% of response time):
+- Clarify your personal responsibility and the explicit objective. Define the success metrics (e.g., reduce p95 latency under 200ms, deliver within 3 weeks without service downtime).
+- Avoid passive "we had to"; articulate your personal ownership: "My responsibility was to profile the query execution paths, identify root causes, and align our 4-person team on an architectural remediation plan."
+3. Action (50-60% of response time - The Core):
+- Describe the specific steps you personally took. Highlight technical decisions, trade-offs evaluated, cross-functional collaboration, and proactive problem solving.
+- Demonstrate active verbs: "I set up a reproducible benchmark...", "I analyzed query plans using EXPLAIN ANALYZE...", "I initiated a 1-on-1 sync with our product lead...", "I proposed automating the critical path tests first."
+- Address roadblocks: Describe what went wrong and how you adapted.
+4. Result (15-20% of response time):
+- Conclude with quantifiable, measurable business and technical outcomes.
+- Mention metrics: percentage improvements, milliseconds saved, cost reduction, customer satisfaction, and team learnings codified into documentation or playbooks.
+- Example: "We dropped p95 query latency from 850ms to 110ms, eliminated all month-end invoice failures, and documented the indexing pattern in a shared team RFC adopted across our engineering org."
+
+## Section 2: Navigating Disagreement and Technical Conflict
+Interviewers ask disagreement questions to evaluate emotional intelligence, empathy, communication, and commitment to shared company goals:
+
+1. The De-escalation Mindset:
+- Never frame disagreements as personal rivalries or "winning an argument."
+- View disagreements as healthy diversity of technical thought aiming for optimal system reliability and product delivery.
+2. Structured Resolution Steps:
+- Step 1: Active Listening. Schedule an informal 1-on-1 to genuinely understand the other party's constraints (timeline pressure, technical debt concerns, operational burden).
+- Step 2: Anchor in Objective Data. Move away from subjective opinions by introducing measurable criteria (profiling benchmarks, customer SLA impact, maintenance cost, unit test coverage).
+- Step 3: Propose a Pragmatic Compromise. E.g., implement the simplified architectural solution for Phase 1 to meet immediate market deadlines, while designing clean interfaces to permit modular refactoring in Phase 2.
+- Step 4: Disagree and Commit. Once leadership or team consensus decides on a path, commit 100% to making the chosen solution successful without lingering resentment.
+
+## Section 3: Handling Tight Deadlines and Scope Management
+When asked: "Describe a situation where you had to deliver under tight deadlines with shifting requirements":
+
+1. Avoid the "hero mentality" (working 80-hour weeks without planning). Interviewers look for systematic engineering leadership and triage ability.
+2. Prioritization Frameworks:
+- MoSCoW Method: Must-have, Should-have, Could-have, Won't-have.
+- Identify the Minimum Viable Product (MVP) core that unblocks customer value.
+3. Transparent Stakeholder Communication:
+- Communicate delivery risks early (no surprises 24 hours before release).
+- Present trade-off options clearly to product managers: "To hit the November 15 release date with verified zero-defect quality, we can either trim the custom export UI to Phase 2 or dedicate an extra engineer from platform."
+

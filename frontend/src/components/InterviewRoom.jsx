@@ -75,6 +75,15 @@ export default function InterviewRoom({
   const currentAnswer = answers[currentIndex] || '';
   const currentEval = evaluations[currentIndex] || null;
 
+  // Stale closure guards for async speech callbacks across questions
+  const currentIndexRef = useRef(currentIndex);
+  const interimTranscriptRef = useRef('');
+  const isListeningRef = useRef(false);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -87,6 +96,7 @@ export default function InterviewRoom({
         recognition.lang = 'en-US';
 
         recognition.onstart = () => {
+          isListeningRef.current = true;
           setIsListening(true);
           setAssistantState('LISTENING');
           setAssistantStatusText('Listening — Speak clearly into your microphone');
@@ -106,17 +116,21 @@ export default function InterviewRoom({
             }
           }
 
+          const qIdx = currentIndexRef.current;
+          interimTranscriptRef.current = interim;
           setInterimTranscript(interim);
-          if (finalized) {
+
+          if (finalized.trim()) {
             setAnswers((prev) => {
-              const existing = prev[currentIndex] || '';
+              const existing = prev[qIdx] || '';
               const sep = existing && !existing.endsWith(' ') ? ' ' : '';
-              return { ...prev, [currentIndex]: existing + sep + finalized.trim() };
+              return { ...prev, [qIdx]: existing + sep + finalized.trim() };
             });
           }
         };
 
         recognition.onerror = (event) => {
+          isListeningRef.current = false;
           setIsListening(false);
           setAssistantState('ERROR');
           soundFX.playAlert();
@@ -136,8 +150,20 @@ export default function InterviewRoom({
         };
 
         recognition.onend = () => {
+          // Flush any unfinalized speech before ending
+          const leftover = interimTranscriptRef.current.trim();
+          if (leftover) {
+            const qIdx = currentIndexRef.current;
+            setAnswers((prev) => {
+              const existing = prev[qIdx] || '';
+              const sep = existing && !existing.endsWith(' ') ? ' ' : '';
+              return { ...prev, [qIdx]: existing + sep + leftover };
+            });
+            interimTranscriptRef.current = '';
+            setInterimTranscript('');
+          }
+          isListeningRef.current = false;
           setIsListening(false);
-          setInterimTranscript('');
           if (assistantState === 'LISTENING') {
             setAssistantState('IDLE');
             setAssistantStatusText('Waiting for your response');
@@ -162,10 +188,12 @@ export default function InterviewRoom({
 
   // When changing questions
   useEffect(() => {
+    currentIndexRef.current = currentIndex;
     stopSpeaking();
     stopListening();
     setMicError(null);
     setInterimTranscript('');
+    interimTranscriptRef.current = '';
     setValidationWarning('');
 
     // If Voice Mode is ON, read question aloud automatically
@@ -240,12 +268,23 @@ export default function InterviewRoom({
   };
 
   const stopListening = () => {
-    if (recognitionRef.current && isListening) {
+    const leftover = interimTranscriptRef.current.trim();
+    if (leftover) {
+      const qIdx = currentIndexRef.current;
+      setAnswers((prev) => {
+        const existing = prev[qIdx] || '';
+        const sep = existing && !existing.endsWith(' ') ? ' ' : '';
+        return { ...prev, [qIdx]: existing + sep + leftover };
+      });
+      interimTranscriptRef.current = '';
+      setInterimTranscript('');
+    }
+    if (recognitionRef.current && isListeningRef.current) {
       try { recognitionRef.current.stop(); } catch (e) {}
     }
     soundFX.playMicStop();
+    isListeningRef.current = false;
     setIsListening(false);
-    setInterimTranscript('');
   };
 
   // Toggle Voice Mode ON / OFF
@@ -264,15 +303,31 @@ export default function InterviewRoom({
   // Evaluate Current Answer (SUBMISSION HANDLER)
   const handleEvaluateAnswer = async () => {
     setValidationWarning('');
-    if (!currentAnswer.trim()) {
-      setValidationWarning('Please provide an answer by typing or speaking before submitting.');
-      soundFX.playAlert();
-      return;
+
+    // If candidate was speaking or has pending interim speech, flush it into answers
+    const leftover = interimTranscriptRef.current.trim();
+    let answerToEval = (answers[currentIndex] || '').trim();
+    if (leftover) {
+      const sep = answerToEval && !answerToEval.endsWith(' ') ? ' ' : '';
+      answerToEval = (answerToEval + sep + leftover).trim();
+      setAnswers((prev) => ({ ...prev, [currentIndex]: answerToEval }));
+      interimTranscriptRef.current = '';
+      setInterimTranscript('');
     }
 
     // Stop active speech recognition or playback before evaluating
     stopListening();
     stopSpeaking();
+
+    if (!answerToEval) {
+      setValidationWarning('Please provide an answer by typing or speaking before submitting.');
+      soundFX.playAlert();
+      return;
+    }
+
+    // Prevent duplicate clicks
+    if (isEvaluating) return;
+
     soundFX.playClick();
     setIsEvaluating(true);
     setAssistantState('THINKING');
@@ -281,7 +336,7 @@ export default function InterviewRoom({
     try {
       const evalResult = await evaluateAnswerApi({
         question: currentQuestion,
-        candidateAnswer: currentAnswer.trim(),
+        candidateAnswer: answerToEval,
         resumeData: resumeData || {},
         targetRole: sessionMeta?.targetRole || 'Software Engineer',
         difficulty: sessionMeta?.difficulty || 'Mid-Level'
@@ -304,8 +359,11 @@ export default function InterviewRoom({
   // Move to next question or complete session
   const handleNextOrFinish = async () => {
     soundFX.playClick();
+    stopListening();
+    stopSpeaking();
+    setValidationWarning('');
     if (currentIndex < totalQuestions - 1) {
-      setCurrentIndex(currentIndex + 1);
+      setCurrentIndex((prev) => prev + 1);
     } else {
       handleFinishSession();
     }
@@ -546,7 +604,8 @@ export default function InterviewRoom({
           value={currentAnswer}
           onChange={(e) => {
             setValidationWarning('');
-            setAnswers({ ...answers, [currentIndex]: e.target.value });
+            const val = e.target.value;
+            setAnswers((prev) => ({ ...prev, [currentIndex]: val }));
           }}
           placeholder="Type your response directly or use the microphone button to dictate. You can freely edit and refine your answer before submitting..."
           className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 leading-relaxed font-sans transition-all"
@@ -609,8 +668,8 @@ export default function InterviewRoom({
             <button
               type="button"
               onClick={handleEvaluateAnswer}
-              disabled={isEvaluating || !currentAnswer.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
+              disabled={isEvaluating}
+              className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer"
             >
               {isEvaluating ? (
                 <>
@@ -620,7 +679,7 @@ export default function InterviewRoom({
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>{currentEval ? 'Re-Submit for Evaluation' : 'Submit Answer'}</span>
+                  <span>{currentEval ? 'Re-Submit Answer' : 'Submit Answer'}</span>
                 </>
               )}
             </button>

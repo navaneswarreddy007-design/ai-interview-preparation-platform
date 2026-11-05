@@ -7,6 +7,7 @@ import ResumeUpload from './components/ResumeUpload';
 import JobMatch from './components/JobMatch';
 import FeedbackReport from './components/FeedbackReport';
 import HistoryDashboard from './components/HistoryDashboard';
+import KnowledgeAssistant from './components/KnowledgeAssistant';
 import SettingsModal from './components/SettingsModal';
 import { soundFX } from './utils/soundEffects';
 import { 
@@ -203,6 +204,7 @@ export default function App() {
       case 'home': return 'Dashboard Overview';
       case 'practice': return 'Interview Setup';
       case 'interview': return 'Mock Interview Room';
+      case 'knowledge': return 'AI Interview Knowledge Assistant';
       case 'resume': return 'Resume Profile & Analysis';
       case 'job_match': return 'Job Description Alignment';
       case 'history': return 'Interview History';
@@ -274,6 +276,7 @@ export default function App() {
               }}
               onOpenResumeAnalysis={() => setActiveTab('resume')}
               onOpenJobMatch={() => setActiveTab('job_match')}
+              onOpenKnowledge={() => setActiveTab('knowledge')}
               onOpenHistory={() => setActiveTab('history')}
               onLoadSampleResume={handleQuickSample}
               onOpenSettings={() => setIsSettingsOpen(true)}
@@ -290,7 +293,12 @@ export default function App() {
             />
           )}
 
-          {/* 3. The Calm, Focused Interview Room */}
+          {/* 3. AI Interview Knowledge Assistant (RAG) */}
+          {activeTab === 'knowledge' && (
+            <KnowledgeAssistant />
+          )}
+
+          {/* 4. The Calm, Focused Interview Room */}
           {activeTab === 'interview' && (
             <InterviewRoom 
               sessionMeta={sessionMeta || {}}

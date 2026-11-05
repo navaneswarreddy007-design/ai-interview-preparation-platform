@@ -17,3 +17,4 @@ backend/__pycache__/
 backend/.venv/
 frontend/dist/
 backend/sample_exported_report.pdf
+backend/chroma_db/

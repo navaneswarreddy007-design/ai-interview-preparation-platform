@@ -1,0 +1,62 @@
+# Operating Systems & Systems Architecture Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - Operating Systems
+Category: Operating Systems
+Target Competencies: Process Management, Memory Architecture, Concurrency, File Systems
+
+## Section 1: Processes vs Threads
+1. Process:
+- An independent instance of an executing program with its own dedicated virtual address space (code segment, data segment, heap, and stack).
+- Operating system enforces strict isolation between process memory boundaries.
+- Inter-Process Communication (IPC) requires explicit OS mechanisms such as Unix domain sockets, pipes, shared memory segments, or message queues.
+- Creating and context-switching between processes is resource-intensive because the memory management unit (MMU) must flush or invalidate translation lookaside buffer (TLB) cache lines.
+2. Thread:
+- The smallest schedulable unit of execution managed by the OS kernel, often termed a lightweight process (LWP).
+- Multiple threads within the same parent process share the process heap, global data, open file descriptors, and code segments.
+- Each thread possesses its own private program counter (PC), CPU registers, and call stack.
+- Thread context switching is significantly faster because the address space and page tables remain identical; TLB invalidation is not required.
+- Concurrency hazard: Shared memory introduces race conditions, requiring synchronization primitives.
+
+## Section 2: Concurrency, Critical Sections & Synchronization Primitives
+When concurrent threads read and write mutable shared state without coordination, race conditions result:
+1. Mutex (Mutual Exclusion Lock):
+- A binary locking mechanism with ownership semantics: only the thread that acquired the mutex can release it.
+- Threads attempting to acquire an already-locked mutex are put into a blocked/sleeping wait queue, avoiding CPU busy-waiting.
+2. Spinlock:
+- A thread repeatedly polls (busy-loops) an atomic flag in user or kernel space until it becomes available.
+- Optimal only for very short critical sections where the sleep context-switch overhead (typically 1-5 microseconds) exceeds the lock hold duration.
+3. Semaphore:
+- A synchronization counter managed by atomic wait (P / acquire) and signal (V / release) primitives.
+- Counting Semaphore: Controls access to a bounded pool of identical resources (e.g., database connection pool of size N).
+- Binary Semaphore: Initialized to 1, functions like a basic lock, but lacks strict thread ownership (thread A can release a semaphore acquired by thread B).
+4. Condition Variable:
+- Used in conjunction with a mutex to allow threads to sleep until a specific application predicate becomes true (e.g., producer-consumer bounded buffer).
+
+## Section 3: Deadlocks and the 4 Coffman Conditions
+A deadlock occurs when a set of concurrent processes are permanently blocked because each holds a resource while waiting for another resource held by another process in the cycle:
+
+All four Coffman Conditions must hold simultaneously for a deadlock to exist:
+1. Mutual Exclusion: At least one resource is held in a non-shareable mode (only one process can use it at a time).
+2. Hold and Wait: A process currently holding at least one resource is actively waiting to acquire additional resources held by other processes.
+3. No Preemption: Resources cannot be forcibly taken from a process holding them; they can only be released voluntarily upon task completion.
+4. Circular Wait: A closed chain of processes exists: P0 waits for a resource held by P1, P1 waits for P2, ..., and Pn waits for P0.
+
+Deadlock Prevention Strategies:
+- Eliminate Circular Wait: Establish a strict global ordering of all resource IDs; require threads to always acquire resources in monotonically increasing numeric order.
+- Eliminate Hold and Wait: Require processes to request and acquire all necessary resources simultaneously before execution begins.
+- Deadlock Detection: Maintain a Resource Allocation Graph (RAG) and periodically run cycle-detection algorithms (Tarjan's or Banker's algorithm).
+
+## Section 4: Virtual Memory, Paging, and the TLB
+1. Virtual Memory Architecture:
+- Provides each process with the illusion of a vast, contiguous address space while decoupling logical addresses from fragmented physical RAM.
+- Divided into fixed-size blocks called Pages (typically 4 KB in x86-64 architecture; 16 KB in Apple Silicon ARM64). Physical RAM is divided into matching Frames.
+2. Page Tables and Multi-Level Paging:
+- Data structure maintained by the OS kernel that maps virtual page numbers (VPN) to physical frame numbers (PFN).
+- Multi-level page tables (4-level or 5-level in 64-bit architectures) save memory by allocating page table subtrees only for mapped virtual address regions.
+3. Translation Lookaside Buffer (TLB):
+- High-speed associative hardware cache residing directly on the CPU memory management unit (MMU).
+- Caches recently translated virtual-to-physical address mappings. TLB hit resolves translation in <1 clock cycle; TLB miss requires walking multi-level page tables in DRAM (30-100 cycles).
+4. Page Faults and Thrashing:
+- Major Page Fault: Occurs when a referenced virtual page is not resident in physical RAM (e.g., swapped to disk or lazily mapped executable). Causes an interrupt; the OS suspends the thread, issues disk I/O, loads the frame, updates the page table, and resumes the thread.
+- Minor Page Fault: Occurs when the page is already loaded in RAM but not yet mapped into the process page table (e.g., copy-on-write page fork).
+- Thrashing: Occurs when available physical RAM is insufficient to hold the combined working sets of active processes. The system spends virtually 100% of CPU time paging in/out from swap storage, causing system throughput to collapse to near zero.
+

@@ -1,0 +1,47 @@
+# Machine Learning & Artificial Intelligence Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - AI & Machine Learning
+Category: Machine Learning & AI
+Target Competencies: Statistical Learning, Deep Learning, Transformer Architectures, RAG Systems
+
+## Section 1: Core Machine Learning Concepts
+1. Supervised vs Unsupervised Learning:
+- Supervised Learning: Model learns a mapping function from labeled input pairs (X, Y).
+  - Regression: Predicts continuous numerical values (e.g., housing prices, latency estimation).
+  - Classification: Predicts discrete categorical labels (e.g., spam detection, sentiment analysis). Algorithms: Logistic Regression, Decision Trees, Random Forests, Gradient Boosted Trees (XGBoost, LightGBM), Support Vector Machines (SVM).
+- Unsupervised Learning: Discovers underlying patterns, clusters, or latent structures in unlabeled data X without supervision. Algorithms: K-Means Clustering, DBSCAN, Principal Component Analysis (PCA) for dimensionality reduction, Autoencoders.
+2. The Bias-Variance Trade-off:
+- Bias (Underfitting): Error introduced by approximating complex real-world relationships with overly simplistic assumptions. High bias models fail to capture training data patterns, yielding poor accuracy on both training and test sets.
+- Variance (Overfitting): Sensitivity of the model to minor fluctuations and noise in the training dataset. High variance models fit training data too closely, memorizing noise and failing to generalize to unseen test data.
+- Total Expected Test Error = Bias^2 + Variance + Irreducible Error.
+- Remedies for Overfitting: Increase training data volume, apply cross-validation (K-Fold), prune decision trees, add L1/L2 regularization, apply Dropout in neural networks, reduce feature dimensions.
+3. Regularization Techniques:
+- L1 Regularization (Lasso): Adds penalty proportional to absolute weights: Loss + lambda * sum(|w_i|). Drives non-essential feature weights strictly to zero, acting as automatic feature selection.
+- L2 Regularization (Ridge): Adds penalty proportional to squared weights: Loss + lambda * sum(w_i^2). Shrinks weights smoothly toward zero without eliminating features entirely.
+- ElasticNet: Combines L1 and L2 penalties with a mixing ratio parameter.
+
+## Section 2: Deep Learning & Transformer Architectures
+1. Neural Network Foundations:
+- Feedforward Neural Networks (MLP): Layers of interconnected perceptrons applying linear transformations followed by non-linear activation functions (ReLU, GELU, Sigmoid, Softmax).
+- Backpropagation: Computes gradients of the scalar loss function with respect to every weight parameter in the network using the chain rule of calculus. Gradients are updated via optimization algorithms (SGD, Adam, AdamW).
+2. The Transformer Architecture ("Attention Is All You Need"):
+- Replaced recurrent neural networks (RNNs/LSTMs) by processing entire token sequences in parallel rather than sequentially.
+- Self-Attention Mechanism: Computes dynamic relevance weights between all pairs of tokens in an input sequence:
+  Attention(Q, K, V) = softmax((Q * K^T) / sqrt(d_k)) * V
+  Where Q = Query, K = Key, V = Value matrices derived by projecting input token embeddings.
+- Multi-Head Attention: Projects queries, keys, and values into h distinct representation subspaces, allowing the model to attend simultaneously to syntactic, semantic, and positional relationships.
+- Positional Encodings: Injects sequence order information since self-attention is permutation-invariant (Sinusoidal or Rotary Positional Embeddings / RoPE).
+- Encoder-Decoder (e.g., original Transformer, T5), Encoder-Only (BERT), and Decoder-Only (GPT, LLaMA, Gemini).
+
+## Section 3: Retrieval-Augmented Generation (RAG) Architecture
+1. Motivation for RAG:
+- Large Language Models suffer from hallucination, factual staleness (knowledge cutoff dates), and lack of visibility into private corporate or domain-specific documentation.
+- Fine-tuning models on domain data is computationally expensive, prone to catastrophic forgetting, and does not provide auditable provenance.
+- RAG decouples knowledge retrieval from linguistic reasoning: external documents are indexed in a vector store, retrieved dynamically given a user prompt, and injected into the LLM context window as ground truth.
+2. The RAG Pipeline Stages:
+- Ingestion & Extraction: Text is extracted from raw documents (PDF, DOCX, TXT) and sanitized.
+- Chunking: Splitting text into coherent segments (e.g., 300-800 characters with 10-20% overlap) to preserve contextual coherence and fit vector embedding token limits.
+- Dense Vector Embedding: Passing chunks through a pre-trained bi-encoder embedding model (e.g., sentence-transformers/all-MiniLM-L6-v2) to generate dense mathematical representations (typically 384 or 768 dimensions) capturing semantic meaning.
+- Vector Indexing & Storage: ChromaDB, Pinecone, or pgvector stores vectors using approximate nearest neighbor (ANN) indexes like HNSW (Hierarchical Navigable Small World).
+- Retrieval: When a query arrives, it is embedded into the same vector space. Cosine similarity or dot product distance retrieves top-K nearest document chunks.
+- Generation: Prompt augmented with retrieved chunks instructed to synthesize an answer citing exact source passages, suppressing hallucinations when information is absent.
+

@@ -305,3 +305,83 @@ export async function matchJobDescriptionApi({ resumeData, jobDescription, targe
   }
   return res.json();
 }
+
+// -----------------------------------------------------------------------------
+// RAG & Knowledge Base Pipeline API
+// -----------------------------------------------------------------------------
+
+export async function fetchRagStatus() {
+  const res = await resilientFetch('/rag/status');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch RAG pipeline status');
+  }
+  return res.json();
+}
+
+export async function fetchRagDocuments() {
+  const res = await resilientFetch('/rag/documents');
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch knowledge base documents');
+  }
+  return res.json();
+}
+
+export async function queryRagKnowledge({ query, topK = 4, category = null, minSimilarity = 0.2 }) {
+  const res = await resilientFetch('/rag/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      top_k: topK,
+      category: category && category !== 'All' ? category : null,
+      min_similarity: minSimilarity,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to query knowledge assistant');
+  }
+  return res.json();
+}
+
+export async function retrieveRagChunks({ query, topK = 4, category = null, minSimilarity = 0.2 }) {
+  const res = await resilientFetch('/rag/retrieve', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query,
+      top_k: topK,
+      category: category && category !== 'All' ? category : null,
+      min_similarity: minSimilarity,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to retrieve relevant chunks');
+  }
+  return res.json();
+}
+
+export async function ingestKnowledgeDocument(payload) {
+  let res;
+  if (payload instanceof FormData) {
+    res = await resilientFetch('/rag/ingest', {
+      method: 'POST',
+      body: payload,
+    });
+  } else {
+    res = await resilientFetch('/rag/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to ingest knowledge document');
+  }
+  return res.json();
+}
+

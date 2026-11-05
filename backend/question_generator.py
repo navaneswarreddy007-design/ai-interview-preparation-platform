@@ -698,7 +698,7 @@ def generate_follow_up_question(question, candidate_answer, resume_data=None, ta
     
     # Check if Gemini or OpenAI available
     provider = config.get_available_provider()
-    if provider == "gemini":
+    if provider and provider.lower() == "gemini":
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={config.GEMINI_API_KEY}"
             prompt = f"""You are an expert interviewer for a {target_role} role ({difficulty}).

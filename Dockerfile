@@ -48,7 +48,7 @@ COPY backend/ ./backend/
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # Create storage directories for persistent volumes
-RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data
+RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data ./backend/chroma_db ./backend/knowledge_base
 
 # Configure environment defaults
 ENV DATABASE_PATH=/app/backend/interview_prep.db \

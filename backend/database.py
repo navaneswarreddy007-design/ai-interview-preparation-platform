@@ -1,7 +1,7 @@
 import sqlite3
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from config import DATABASE_PATH
 
@@ -99,7 +99,7 @@ def save_session(session_data: Dict[str, Any]) -> str:
     cursor = conn.cursor()
     
     session_id = session_data["id"]
-    now_str = datetime.utcnow().isoformat()
+    now_str = datetime.now(timezone.utc).isoformat()
     
     cursor.execute("""
     INSERT OR REPLACE INTO sessions (
@@ -212,7 +212,7 @@ def record_asked_question(
 ):
     from duplicate_detector import normalize_text
     norm = normalize_text(question_text)
-    now_str = datetime.utcnow().isoformat()
+    now_str = datetime.now(timezone.utc).isoformat()
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -244,7 +244,7 @@ def record_asked_questions_batch(
     interview_type: str = "Mixed"
 ):
     from duplicate_detector import normalize_text
-    now_str = datetime.utcnow().isoformat()
+    now_str = datetime.now(timezone.utc).isoformat()
     conn = get_connection()
     cursor = conn.cursor()
     for q in questions:

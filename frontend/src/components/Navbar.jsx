@@ -16,7 +16,8 @@ import {
   X,
   User,
   Bot,
-  ChevronRight
+  ChevronRight,
+  BookOpen
 } from 'lucide-react';
 import { soundFX } from '../utils/soundEffects';
 
@@ -41,6 +42,7 @@ export default function Navbar({
   const navItems = [
     { id: 'home', label: 'Dashboard', icon: Home, desc: 'Overview & analytics' },
     { id: 'practice', label: 'Practice Interview', icon: Play, desc: 'Setup guided interview' },
+    { id: 'knowledge', label: 'Knowledge Assistant', icon: BookOpen, desc: 'RAG interview prep corpus' },
     { id: 'resume', label: 'Resume Analysis', icon: FileText, desc: 'Profile & skills parser' },
     { id: 'job_match', label: 'Job Match', icon: CheckSquare, desc: 'Target role alignment' },
     { id: 'history', label: 'Interview History', icon: History, desc: 'Past session logs' },

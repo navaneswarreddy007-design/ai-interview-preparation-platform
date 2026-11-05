@@ -17,13 +17,13 @@ def classify_question_category(category_name: str, question_text: str = "") -> s
     
     # Behavioral / HR / Leadership
     behavioral_markers = [
-        "behavioral", "leadership", "collaboration", "hr", "conflict",
-        "interpersonal", "soft skill", "culture", "teamwork", "disagree",
-        "continuous learning", "career progression"
+        r"\bbehavioral\b", r"\bleadership\b", r"\bcollaboration\b", r"\bhr\b", r"\bconflict\b",
+        r"\binterpersonal\b", r"\bsoft skills?\b", r"\bculture\b", r"\bteamwork\b", r"\bdisagree\b",
+        r"\bcontinuous learning\b", r"\bcareer progression\b", r"\bstar\b"
     ]
-    if any(m in cat_lower for m in behavioral_markers):
+    if any(re.search(m, cat_lower) for m in behavioral_markers):
         return "behavioral"
-    if any(m in q_lower for m in ["disagree", "conflict", "teammate", "team lead", "tight deadline", "prioritize tasks", "cross-functional"]):
+    if any(re.search(r'\b' + re.escape(m) + r'\b', q_lower) for m in ["disagree", "conflict", "teammate", "team lead", "tight deadline", "prioritize tasks", "cross-functional"]):
         return "behavioral"
         
     # Aptitude & Problem Solving
@@ -177,14 +177,18 @@ def evaluate_answer_rule_based(
             "i proposed", "i initiated", "i led", "i suggested", "i discussed",
             "i organized", "i would start", "i start", "i capture", "i identify",
             "i write", "i run", "i execute", "i isolate", "i test", "i verify",
-            "i use", "i take", "i analyze", "i ran", "i introduced"
+            "i use", "i take", "i analyze", "i ran", "i introduced",
+            "implemented", "designed", "optimized", "refactored", "configured",
+            "provisioned", "migrated", "automated", "benchmarked", "profiled",
+            "indexed", "isolated", "debugged", "resolved", "decoupled"
         ],
         "result": [
             "result", "reduced", "improved", "increased", "decreased", "saved",
             "achieved", "delivered", "resolved", "outcome", "%", "percent", "ms",
             "seconds", "users", "on time", "no incident", "production ready",
             "stabiliz", "eliminate", "fixed", "prevent", "verified", "benchmark",
-            "dropped", "zero"
+            "dropped", "zero", "latency", "throughput", "uptime", "availability",
+            "coverage", "scalable", "efficiency"
         ]
     }
     star_found = {pillar: any(m in lower_text for m in markers) for pillar, markers in star_markers.items()}

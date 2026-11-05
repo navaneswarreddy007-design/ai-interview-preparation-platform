@@ -1,0 +1,68 @@
+# Computer Networks & Distributed Communications Interview Reference Manual
+Source: PrepForge Technical Interview Engineering Curriculum - Computer Networks
+Category: Computer Networks
+Target Competencies: OSI/TCP Models, Transport Protocols, Application Protocols, Security & TLS
+
+## Section 1: OSI 7-Layer Model vs TCP/IP Protocol Suite
+The Open Systems Interconnection (OSI) reference model organizes network communication into 7 modular abstraction layers:
+
+1. Physical Layer (Layer 1): Transmits raw unstructured bit streams over physical media (cables, fiber optics, radio frequencies). Units: Bits. Examples: Ethernet PHY, 802.11 Wi-Fi.
+2. Data Link Layer (Layer 2): Handles node-to-node frame transmission over a local shared medium, MAC addressing, collision management, and error detection (CRC). Units: Frames. Examples: Ethernet, ARP, Switches.
+3. Network Layer (Layer 3): Manages logical end-to-end addressing, packet routing across disparate networks, and packet fragmentation. Units: Packets. Examples: IPv4, IPv6, ICMP, Routers, BGP, OSPF.
+4. Transport Layer (Layer 4): Provides host-to-host process communication, port multiplexing, and reliable or unreliable delivery. Units: Segments (TCP) / Datagrams (UDP). Examples: TCP, UDP, SCTP.
+5. Session Layer (Layer 5): Establishes, maintains, and synchronizes dialogs between applications. Examples: RPC, NetBIOS.
+6. Presentation Layer (Layer 6): Translates, serializes, compresses, and encrypts data formats. Examples: TLS/SSL, JSON, XML, JPEG.
+7. Application Layer (Layer 7): Interacts directly with software applications and end-user protocols. Examples: HTTP, HTTPS, DNS, SMTP, SSH, WebSocket, gRPC.
+
+TCP/IP Model (4-Layer practical model):
+- Link / Network Access Layer (maps to OSI 1-2).
+- Internet Layer (maps to OSI 3: IP, ICMP).
+- Transport Layer (maps to OSI 4: TCP, UDP).
+- Application Layer (maps to OSI 5-7: HTTP, DNS, TLS).
+
+## Section 2: TCP vs UDP & The TCP 3-Way Handshake
+1. Transmission Control Protocol (TCP):
+- Connection-oriented: Establishes a virtual circuit before transmitting payload data.
+- Reliability guarantees: Automatic retransmission of lost segments using Sequence Numbers, Acknowledgments (ACKs), and checksums.
+- Flow Control: Sliding window mechanism prevents a fast sender from overwhelming a slow receiver's buffer.
+- Congestion Control: Algorithms (Tahoe, Reno, CUBIC, BBR) dynamically adjust the Congestion Window (cwnd) based on packet loss and round-trip time (RTT). Slow Start -> Congestion Avoidance -> Fast Retransmit / Fast Recovery.
+2. User Datagram Protocol (UDP):
+- Connectionless: Sends datagrams without establishing a handshake or maintaining session state.
+- Unreliable & Lightweight: No sequence numbers, no ACKs, no retransmissions, no flow/congestion control.
+- Low Latency: Ideal for real-time applications where timeliness outweighs occasional packet loss (VoIP audio, video streaming, online multiplayer gaming, DNS queries).
+3. The TCP 3-Way Handshake (Connection Establishment):
+- Step 1: Client sends a SYN segment with an Initial Sequence Number (ISN_c) to the server. State: SYN-SENT.
+- Step 2: Server allocates resources and responds with SYN-ACK, acknowledging client ISN (ACK = ISN_c + 1) and providing its own ISN_s. State: SYN-RCVD.
+- Step 3: Client sends an ACK segment confirming server sequence number (ACK = ISN_s + 1). State: ESTABLISHED. Both sides can now transmit data.
+4. TCP 4-Way Handshake (Connection Teardown):
+- Client sends FIN -> Server responds with ACK (half-closed) -> Server finishes transmission and sends its FIN -> Client sends ACK and enters TIME_WAIT state (2 * Maximum Segment Lifetime / 2MSL) before terminating to ensure the final ACK reached the server.
+
+## Section 3: DNS Resolution & What Happens When You Type a URL
+When a user navigates to "https://www.prepforge.dev":
+1. Local Cache Lookup: Browser checks in-memory DNS cache -> OS resolver cache -> local hosts file -> router DNS cache.
+2. Recursive DNS Resolution: If uncached, the query is sent to a Recursive Resolver (e.g., ISP or 8.8.8.8).
+3. Root DNS Server (.): Resolver queries a root nameserver, which directs the resolver to the Top-Level Domain (TLD) nameservers for ".dev".
+4. TLD Nameserver (.dev): Returns the Authoritative Nameservers for "prepforge.dev".
+5. Authoritative Nameserver: Resolves "www.prepforge.dev" to its destination IP address (e.g., 198.51.100.42) with a Time-To-Live (TTL).
+6. TCP Handshake: Client establishes TCP connection on port 443 with the target IP.
+7. TLS 1.3 Handshake: Client and server negotiate cipher suites, perform Diffie-Hellman key exchange, verify X.509 certificate validity, and generate symmetric session keys.
+8. HTTP/2 or HTTP/3 Request: Browser transmits HTTP GET request encrypted with TLS session keys.
+9. Server Processing & Response: Reverse proxy (Nginx) forwards to application server (Flask/Gunicorn); server generates response HTML/JSON.
+10. Browser Rendering: Browser parses HTML, builds DOM and CSSOM, constructs render tree, computes layout, and paints pixels.
+
+## Section 4: HTTP Evolution – HTTP/1.1 vs HTTP/2 vs HTTP/3
+1. HTTP/1.1:
+- Introduced Keep-Alive persistent connections (reusing TCP connection for multiple sequential requests).
+- Bottleneck: Head-of-Line (HoL) Blocking at the application layer: only one request can be processed at a time over a single TCP connection. Browsers circumvented this by opening 6 parallel TCP connections per domain.
+2. HTTP/2:
+- Binary Framing: Replaces plaintext ASCII with binary frames (HEADERS, DATA, SETTINGS).
+- Multiplexing: Multiple independent bidirectional request/response streams interleaved over a single shared TCP connection. Completely eliminates application-level HoL blocking.
+- Header Compression: HPACK algorithm compresses repetitive HTTP headers.
+- Server Push: Allows server to proactively push critical CSS/JS assets before the client explicitly parses them.
+- Limitation: TCP-level HoL blocking still exists. If a single packet drops on the TCP link, all multiplexed HTTP/2 streams stall until that packet is retransmitted.
+3. HTTP/3 (over QUIC):
+- Runs over UDP using the QUIC transport protocol (RFC 9000).
+- Solves TCP-level Head-of-Line blocking: each stream in QUIC is truly independent; packet loss on stream A does not stall stream B.
+- 0-RTT Connection Establishment: Combines transport handshake and TLS 1.3 cryptographic handshake into a single round trip.
+- Connection Migration: Uses Connection IDs instead of (IP, Port) tuples, allowing seamless session survival when switching from Wi-Fi to cellular data.
+
