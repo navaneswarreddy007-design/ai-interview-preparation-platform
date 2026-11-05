@@ -1,8 +1,10 @@
+import os
 import requests
 import json
 import uuid
 
-BASE_URL = "http://127.0.0.1:5000/api"
+port = os.environ.get("PORT", "5001")
+BASE_URL = f"http://127.0.0.1:{port}/api"
 
 def test_full_workflow():
     print("=" * 60)

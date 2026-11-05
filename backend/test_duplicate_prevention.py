@@ -183,7 +183,8 @@ class TestDuplicatePrevention(unittest.TestCase):
 
     def test_06_live_api_endpoints(self):
         print("\n--- Test 6: Live Flask API Endpoints ---")
-        base_url = "http://127.0.0.1:5000/api"
+        port = os.environ.get("PORT", "5001")
+        base_url = f"http://127.0.0.1:{port}/api"
         
         # 1. Health check
         health_resp = requests.get(f"{base_url}/health", timeout=5)

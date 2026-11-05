@@ -50,9 +50,9 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 # Create storage directories for persistent volumes and local model cache
 RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data ./backend/chroma_db ./backend/knowledge_base ./backend/.cache/huggingface
 
-# Pre-index RAG knowledge base into ChromaDB during Docker build
-# This bakes the persistent vector store and cached model weights directly into the production image.
-RUN cd backend && python -c "from rag.vector_store import get_vector_store; vs = get_vector_store(); vs.index_knowledge_base()" && \
+# Pre-index RAG knowledge base into ChromaDB during Docker build using ONNX Runtime INT8
+# This bakes the persistent vector store and cached ONNX model weights directly into the production image.
+RUN cd backend && python -c "from rag.vector_store import get_vector_store; vs = get_vector_store(); vs.index_knowledge_base(force_reindex=True)" && \
     chmod -R u=rwX,go=rX /app/backend/chroma_db /app/backend/uploads /app/backend/.cache
 
 # Configure environment defaults
