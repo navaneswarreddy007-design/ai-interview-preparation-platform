@@ -26,7 +26,6 @@ FROM python:3.11-slim AS production
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=5000 \
     HOST=0.0.0.0 \
     FLASK_ENV=production
 
@@ -54,13 +53,13 @@ RUN mkdir -p ./backend/uploads ./backend/sample_resumes ./backend/data ./backend
 ENV DATABASE_PATH=/app/backend/interview_prep.db \
     UPLOAD_FOLDER=/app/backend/uploads
 
-EXPOSE 5000
+EXPOSE 10000
 
 # Docker Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-5000}/api/health || exit 1
+    CMD curl -f http://localhost:${PORT:-10000}/api/health || exit 1
 
 WORKDIR /app/backend
 
 # Run with Gunicorn production WSGI server
-CMD ["sh", "-c", "exec gunicorn --workers=4 --bind=0.0.0.0:${PORT:-5000} --timeout=120 --access-logfile=- --error-logfile=- wsgi:app"]
+CMD ["sh", "-c", "exec gunicorn --workers=4 --bind=0.0.0.0:${PORT:-10000} --timeout=120 --access-logfile=- --error-logfile=- wsgi:app"]
