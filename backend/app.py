@@ -935,6 +935,6 @@ def serve_production_frontend(path):
     })
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5001))
+    port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask Interview Prep Server on port {port} (0.0.0.0 & 127.0.0.1)...")
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

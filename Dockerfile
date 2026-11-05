@@ -58,9 +58,9 @@ EXPOSE 5000
 
 # Docker Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || exit 1
+    CMD curl -f http://localhost:${PORT:-5000}/api/health || exit 1
 
 WORKDIR /app/backend
 
 # Run with Gunicorn production WSGI server
-CMD ["gunicorn", "--workers=4", "--bind=0.0.0.0:5000", "--timeout=120", "--access-logfile=-", "--error-logfile=-", "wsgi:app"]
+CMD ["sh", "-c", "exec gunicorn --workers=4 --bind=0.0.0.0:${PORT:-5000} --timeout=120 --access-logfile=- --error-logfile=- wsgi:app"]

@@ -24,7 +24,7 @@ import database
 database.init_db()
 
 if __name__ == '__main__':
-    port = int(os.getenv("PORT", 5001))
+    port = int(os.environ.get("PORT", 5000))
     host = os.getenv("HOST", "0.0.0.0")
     print(f"================================================================")
     print(f" AI POWERED INTERVIEW PREPARATION PLATFORM — PRODUCTION WSGI   ")
