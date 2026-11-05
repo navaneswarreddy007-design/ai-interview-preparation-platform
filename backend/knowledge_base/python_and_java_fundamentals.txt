@@ -48,4 +48,3 @@ Target Competencies: Memory Management, Concurrency Models, Garbage Collection, 
 - Exception:
   - Checked Exceptions: Subclasses of Exception (excluding RuntimeException). Verified at compile-time; must be handled via try-catch or declared via throws (e.g., IOException, SQLException).
   - Unchecked Exceptions: Subclasses of RuntimeException. Occur during execution due to programming flaws (NullPointerException, ArrayIndexOutOfBoundsException, IllegalArgumentException).
-

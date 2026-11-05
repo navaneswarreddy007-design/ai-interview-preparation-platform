@@ -26,7 +26,7 @@ class VectorStoreManager:
     def __init__(self):
         self.persist_dir = Path(config.CHROMA_PERSIST_DIRECTORY)
         self.persist_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Initialize persistent ChromaDB client
         self.client = chromadb.PersistentClient(
             path=str(self.persist_dir),
@@ -446,4 +446,3 @@ def get_vector_store() -> VectorStoreManager:
             if _vector_store_instance is None:
                 _vector_store_instance = VectorStoreManager()
     return _vector_store_instance
-

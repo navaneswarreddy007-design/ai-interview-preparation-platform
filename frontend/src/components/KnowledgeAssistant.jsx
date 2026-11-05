@@ -159,7 +159,7 @@ export default function KnowledgeAssistant() {
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12 font-sans">
-      
+
       {/* 1. Header Banner & Architecture Badge */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -198,7 +198,7 @@ export default function KnowledgeAssistant() {
 
       {/* 2. Search & Filter Console */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-        
+
         {/* Search Bar */}
         <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="relative flex items-center">
           <div className="absolute left-4 text-slate-400">
@@ -234,7 +234,7 @@ export default function KnowledgeAssistant() {
 
         {/* Filters & Knobs */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1 border-t border-slate-100 text-xs">
-          
+
           {/* Category Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0 scrollbar-none">
             <span className="text-slate-400 font-medium text-[11px] uppercase tracking-wider mr-1">Scope:</span>
@@ -334,10 +334,10 @@ export default function KnowledgeAssistant() {
       {/* 5. Result Display Area */}
       {result && !loading && (
         <div className="space-y-6">
-          
+
           {/* Main Grounded Answer Card */}
           <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-            
+
             {/* Header: Mode Badge & Confidence */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -420,8 +420,8 @@ export default function KnowledgeAssistant() {
 
                         {/* Similarity Score Badge */}
                         <div className={`px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap border ${
-                          isHighSim 
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                          isHighSim
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             : 'bg-blue-50 text-blue-700 border-blue-200'
                         }`}>
                           {similarityPct}% match
@@ -541,7 +541,7 @@ export default function KnowledgeAssistant() {
       {showCatalogModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-xl">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between p-5 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
@@ -567,7 +567,7 @@ export default function KnowledgeAssistant() {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              
+
               {/* Upload New Document Dropzone */}
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -679,4 +679,3 @@ export default function KnowledgeAssistant() {
     </div>
   );
 }
-

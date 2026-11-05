@@ -59,4 +59,3 @@ Deadlock Prevention Strategies:
 - Major Page Fault: Occurs when a referenced virtual page is not resident in physical RAM (e.g., swapped to disk or lazily mapped executable). Causes an interrupt; the OS suspends the thread, issues disk I/O, loads the frame, updates the page table, and resumes the thread.
 - Minor Page Fault: Occurs when the page is already loaded in RAM but not yet mapped into the process page table (e.g., copy-on-write page fork).
 - Thrashing: Occurs when available physical RAM is insufficient to hold the combined working sets of active processes. The system spends virtually 100% of CPU time paging in/out from swap storage, causing system throughput to collapse to near zero.
-

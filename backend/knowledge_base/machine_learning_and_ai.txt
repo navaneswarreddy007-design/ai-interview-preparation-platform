@@ -44,4 +44,3 @@ Target Competencies: Statistical Learning, Deep Learning, Transformer Architectu
 - Vector Indexing & Storage: ChromaDB, Pinecone, or pgvector stores vectors using approximate nearest neighbor (ANN) indexes like HNSW (Hierarchical Navigable Small World).
 - Retrieval: When a query arrives, it is embedded into the same vector space. Cosine similarity or dot product distance retrieves top-K nearest document chunks.
 - Generation: Prompt augmented with retrieved chunks instructed to synthesize an answer citing exact source passages, suppressing hallucinations when information is absent.
-

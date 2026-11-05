@@ -56,7 +56,7 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 1: Verify PDF text and page extraction using pypdf."""
         pdf_path = config.KNOWLEDGE_BASE_DIR / "system_design_interview_handbook.pdf"
         self.assertTrue(pdf_path.exists(), f"PDF file not found: {pdf_path}")
-        
+
         extracted = extract_from_pdf(pdf_path)
         self.assertIn("full_text", extracted)
         self.assertIn("sections", extracted)
@@ -68,7 +68,7 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 2: Verify DOCX paragraph and table extraction using python-docx."""
         docx_path = config.KNOWLEDGE_BASE_DIR / "distributed_systems_patterns.docx"
         self.assertTrue(docx_path.exists(), f"DOCX file not found: {docx_path}")
-        
+
         extracted = extract_from_docx(docx_path)
         self.assertIn("full_text", extracted)
         self.assertIn("sections", extracted)
@@ -172,7 +172,7 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         query = "What are ACID properties in relational databases?"
         chunks = self.vs.search(query, top_k=2)
         self.assertGreater(len(chunks), 0)
-        
+
         fallback_text = generate_grounded_fallback_synthesis(query, chunks)
         self.assertIn("Knowledge Base Synthesis (Rule-Based Grounded Retrieval)", fallback_text)
         self.assertIn("dbms_and_sql_concepts.txt", fallback_text)
@@ -246,10 +246,10 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 14: Verify ACID query produces complete structured answer with bank example, zero SQL optimization noise, non-empty chunk content, and no duplicate citations."""
         query = "Explain ACID properties in DBMS"
         response = answer_query_with_rag(query, top_k=4)
-        
+
         self.assertTrue(response["is_grounded"])
         self.assertGreater(response["sources_count"], 0)
-        
+
         # 1. Verify source documents & NO unrelated DSA or SQL optimization join content returned
         doc_names = [s["document_name"] for s in response["retrieved_sources"]]
         sec_titles = [s["section_title"] for s in response["retrieved_sources"]]
@@ -266,17 +266,17 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
             sec_key = (s["document_name"], s["section_title"])
             self.assertNotIn(sec_key, seen_secs, f"Duplicate section citation detected: {sec_key}")
             seen_secs.add(sec_key)
-        
+
         # 3. Verify all 4 ACID properties are explicitly covered in the generated answer
         answer = response["answer"]
         self.assertIn("Atomicity", answer)
         self.assertIn("Consistency", answer)
         self.assertIn("Isolation", answer)
         self.assertIn("Durability", answer)
-        
+
         # 4. Verify bank transaction example is included (supported by retrieved context)
         self.assertTrue("bank" in answer.lower() or "account a" in answer.lower(), "Bank transaction example must be included when supported by context")
-        
+
         # 5. Verify transparent mode distinction
         if not config.GEMINI_API_KEY:
             self.assertFalse(response["is_ai"])
@@ -284,19 +284,19 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         else:
             self.assertTrue(response["is_ai"])
             self.assertIn("Gemini", response["mode"])
-            
+
         print("[Test 14 PASS] ACID properties query generated complete answer with bank example, zero SQL join noise, non-empty content, and no duplicate citations")
 
     def test_15_dbms_joins_retrieval(self):
         """Test 15: Verify SQL join strategies query retrieves DBMS documentation and details physical joins without ACID noise."""
         query = "What are SQL joins: nested loop, hash join, and merge join?"
         response = answer_query_with_rag(query, top_k=3)
-        
+
         self.assertTrue(response["is_grounded"])
         doc_names = [s["document_name"] for s in response["retrieved_sources"]]
         sec_titles = [s["section_title"] for s in response["retrieved_sources"]]
         self.assertIn("dbms_and_sql_concepts.txt", doc_names)
-        
+
         # Verify no ACID noise in SQL joins query
         for st in sec_titles:
             self.assertNotIn("ACID", st, "ACID chunks must not contaminate SQL join queries")
@@ -315,13 +315,13 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 16: Verify OS deadlock query retrieves OS handbook and details all 4 Coffman conditions."""
         query = "What are the 4 Coffman conditions required for deadlocks?"
         response = answer_query_with_rag(query, top_k=3)
-        
+
         self.assertTrue(response["is_grounded"])
         doc_names = [s["document_name"] for s in response["retrieved_sources"]]
         self.assertIn("operating_systems_concepts.txt", doc_names)
         for s in response["retrieved_sources"]:
             self.assertTrue(bool(s.get("content")), "Retrieved OS chunk must contain non-empty content")
-        
+
         answer = response["answer"]
         self.assertIn("Mutual Exclusion", answer)
         self.assertIn("Hold and Wait", answer)
@@ -333,13 +333,13 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 17: Verify Python GIL query retrieves language fundamentals and details memory & concurrency."""
         query = "What is the Global Interpreter Lock in Python and how does memory management work?"
         response = answer_query_with_rag(query, top_k=3)
-        
+
         self.assertTrue(response["is_grounded"])
         doc_names = [s["document_name"] for s in response["retrieved_sources"]]
         self.assertIn("python_and_java_fundamentals.txt", doc_names)
         for s in response["retrieved_sources"]:
             self.assertTrue(bool(s.get("content")), "Retrieved Python chunk must contain non-empty content")
-        
+
         answer = response["answer"]
         self.assertIn("Global Interpreter Lock", answer)
         self.assertTrue("reference counting" in answer.lower())
@@ -350,13 +350,13 @@ class TestPrepForgeRAGPipeline(unittest.TestCase):
         """Test 18: Verify distributed systems query retrieves DOCX handbook and details CAP and PACELC."""
         query = "Explain CAP theorem and PACELC in distributed systems"
         response = answer_query_with_rag(query, top_k=3)
-        
+
         self.assertTrue(response["is_grounded"])
         doc_names = [s["document_name"] for s in response["retrieved_sources"]]
         self.assertIn("distributed_systems_patterns.docx", doc_names)
         for s in response["retrieved_sources"]:
             self.assertTrue(bool(s.get("content")), "Retrieved distributed systems chunk must contain non-empty content")
-        
+
         answer = response["answer"]
         self.assertIn("Consistency", answer)
         self.assertIn("Availability", answer)

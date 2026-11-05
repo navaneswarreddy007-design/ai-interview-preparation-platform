@@ -110,11 +110,11 @@ export async function uploadResumeText(rawText, filename = 'pasted_resume.txt') 
   return res.json();
 }
 
-export async function generateInterviewQuestions({ 
-  resumeData, 
-  targetRole, 
-  interviewType, 
-  difficulty, 
+export async function generateInterviewQuestions({
+  resumeData,
+  targetRole,
+  interviewType,
+  difficulty,
   experienceLevel,
   questionCount,
   candidateName,
@@ -384,4 +384,3 @@ export async function ingestKnowledgeDocument(payload) {
   }
   return res.json();
 }
-

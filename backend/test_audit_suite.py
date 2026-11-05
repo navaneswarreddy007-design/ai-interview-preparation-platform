@@ -21,9 +21,9 @@ try:
     import database
     import config
     from extractor import (
-        validate_file, 
-        parse_resume_structure, 
-        extract_text_from_pdf, 
+        validate_file,
+        parse_resume_structure,
+        extract_text_from_pdf,
         extract_text_from_docx
     )
     from question_generator import generate_questions
@@ -34,9 +34,9 @@ except ImportError:
     import backend.database as database
     import backend.config as config
     from backend.extractor import (
-        validate_file, 
-        parse_resume_structure, 
-        extract_text_from_pdf, 
+        validate_file,
+        parse_resume_structure,
+        extract_text_from_pdf,
         extract_text_from_docx
     )
     from backend.question_generator import generate_questions
@@ -86,18 +86,18 @@ class PrepForgeAuditSuite(unittest.TestCase):
         sample_resume_text = """
         Priya Sharma
         priya.sharma@example.com | +91 9876543210 | Bengaluru, India
-        
+
         TECHNICAL SKILLS
         Languages: Python, JavaScript, SQL
         Frameworks: React, Flask, Django, Tailwind CSS
         Databases: PostgreSQL, SQLite, Redis
         Tools: Git, Docker, Postman
-        
+
         ACADEMIC PROJECTS
         Smart Health Monitoring System | Python, Flask, SQLite, React
         - Developed a full-stack health telemetry dashboard tracking patient vitals in real time.
         - Optimized SQLite queries and implemented JWT-based user authentication.
-        
+
         EDUCATION
         B.Tech in Computer Science and Engineering | 2020 - 2024
         """
@@ -117,7 +117,7 @@ class PrepForgeAuditSuite(unittest.TestCase):
         - Complete session and verify DB persistence
         """
         print("\n--- Running Test 03: 5 Consecutive Voice Mode Questions ---")
-        
+
         # 1. Load sample candidate (Alex Morgan)
         sample_resp = self.client.post('/api/load-sample-resume', json={"sample_id": "fullstack"})
         self.assertEqual(sample_resp.status_code, 200)
@@ -144,7 +144,7 @@ class PrepForgeAuditSuite(unittest.TestCase):
             q = questions[idx]
             q_text = q.get("question_text", "").lower()
             cat = q.get("category", "").lower()
-            
+
             # Formulate an accurate response tailored to the question's focus
             if "behavioral" in cat or "star" in cat or "leadership" in cat or "conflict" in q_text or "priorit" in q_text or "schedule" in q_text:
                 spoken_answer = (
@@ -176,7 +176,7 @@ class PrepForgeAuditSuite(unittest.TestCase):
                     "and asynchronous event-driven messaging with Kafka. We chose Kafka for decoupling order ingestion, which guaranteed zero data loss "
                     "under load spikes and provided idempotent processing across services."
                 )
-            
+
             # Submit each answer through the evaluation API
             eval_payload = {
                 "question": q,
@@ -188,7 +188,7 @@ class PrepForgeAuditSuite(unittest.TestCase):
             eval_resp = self.client.post('/api/evaluate-answer', json=eval_payload)
             self.assertEqual(eval_resp.status_code, 200, f"Evaluation failed for Question {idx+1}")
             ev = eval_resp.get_json()
-            
+
             # Assertions for every question
             self.assertIn("score", ev)
             self.assertGreaterEqual(ev["score"], 60, f"Score for Question {idx+1} should be passing (got {ev['score']})")
@@ -197,7 +197,7 @@ class PrepForgeAuditSuite(unittest.TestCase):
             self.assertIn("accuracy_score", ev)
             self.assertIn("clarity_score", ev)
             self.assertIn("evidence_score", ev)
-            
+
             q_with_eval = dict(q)
             q_with_eval["candidate_answer"] = spoken_answer
             q_with_eval["evaluation"] = ev

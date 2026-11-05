@@ -80,4 +80,3 @@ class EmbeddingManager:
     @classmethod
     def get_model_name(cls) -> str:
         return cls._model_name
-

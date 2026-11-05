@@ -71,7 +71,7 @@ def recursive_split_text(
                 merged = chosen_sep.join(current_chunk).strip()
                 if merged:
                     chunks.append(merged)
-                
+
                 # Apply overlap by retaining trailing pieces from previous chunk
                 overlap_pieces: List[str] = []
                 overlap_len = 0
@@ -157,4 +157,3 @@ def chunk_document(
             global_chunk_idx += 1
 
     return all_chunks
-

@@ -226,4 +226,3 @@ def load_document(file_path: Path) -> Dict[str, Any]:
         "full_text": extracted["full_text"],
         "sections": extracted["sections"]
     }
-

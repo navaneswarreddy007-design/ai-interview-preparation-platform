@@ -43,4 +43,3 @@ When asked: "Describe a situation where you had to deliver under tight deadlines
 3. Transparent Stakeholder Communication:
 - Communicate delivery risks early (no surprises 24 hours before release).
 - Present trade-off options clearly to product managers: "To hit the November 15 release date with verified zero-defect quality, we can either trim the custom export UI to Phase 2 or dedicate an extra engineer from platform."
-

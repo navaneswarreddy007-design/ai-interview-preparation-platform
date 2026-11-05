@@ -65,4 +65,3 @@ When a user navigates to "https://www.prepforge.dev":
 - Solves TCP-level Head-of-Line blocking: each stream in QUIC is truly independent; packet loss on stream A does not stall stream B.
 - 0-RTT Connection Establishment: Combines transport handshake and TLS 1.3 cryptographic handshake into a single round trip.
 - Connection Migration: Uses Connection IDs instead of (IP, Port) tuples, allowing seamless session survival when switching from Wi-Fi to cellular data.
-

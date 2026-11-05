@@ -131,7 +131,7 @@ def generate_grounded_fallback_synthesis(query: str, chunks: List[Dict[str, Any]
 
         acid_data = extract_acid_breakdown(combined_text)
         lines.append("#### 2. The Four ACID Properties")
-        
+
         # Atomicity
         atomicity_desc = acid_data.get("Atomicity", "The 'all-or-nothing' rule. Either all updates in a transaction are committed to persistent disk, or the entire transaction is rolled back using write-ahead logs (WAL). If a system crash occurs mid-flight, uncommitted changes are undone during crash recovery.")
         lines.append(f"- **Atomicity (All-or-Nothing):** {atomicity_desc}")

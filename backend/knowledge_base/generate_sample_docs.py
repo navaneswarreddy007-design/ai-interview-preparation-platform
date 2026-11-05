@@ -7,7 +7,7 @@ import docx
 def create_sample_pdf(output_path: Path):
     doc = SimpleDocTemplate(str(output_path), pagesize=letter, leftMargin=54, rightMargin=54, topMargin=54, bottomMargin=54)
     styles = getSampleStyleSheet()
-    
+
     title_style = ParagraphStyle('DocTitle', parent=styles['Heading1'], fontSize=16, spaceAfter=8)
     h2_style = ParagraphStyle('H2', parent=styles['Heading2'], fontSize=12, spaceAfter=6, spaceBefore=10)
     body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, leading=14, spaceAfter=6)
@@ -32,7 +32,7 @@ def create_sample_docx(output_path: Path):
     doc = docx.Document()
     doc.add_heading("Cloud Microservices & Resilience Patterns", level=1)
     doc.add_paragraph("Category: Cloud Architecture & DevOps")
-    
+
     doc.add_heading("Section 1: The Circuit Breaker Pattern", level=2)
     doc.add_paragraph(
         "In a distributed microservice topology, cascading failures occur when an upstream service repeatedly waits on a slow, degraded downstream service. "
@@ -40,14 +40,14 @@ def create_sample_docx(output_path: Path):
         "Closed (normal operations; calls flow through), Open (failures exceed threshold; calls fail fast immediately without waiting for timeouts), "
         "and Half-Open (periodically sends a small test probe to verify if the downstream service has recovered)."
     )
-    
+
     doc.add_heading("Section 2: Message Queues & Event-Driven Decoupling", level=2)
     doc.add_paragraph(
         "Using Apache Kafka or RabbitMQ decouples request ingestion from backend processing. "
         "Producers publish events asynchronously, enabling backpressure management and spike smoothing without dropping incoming HTTP transactions. "
         "Idempotency keys ensure that duplicate message deliveries (at-least-once delivery semantics) do not trigger duplicate database mutations."
     )
-    
+
     doc.add_heading("Section 3: The CAP Theorem & PACELC Theorem", level=2)
     doc.add_paragraph(
         "In distributed data stores, Brewer's CAP Theorem proves that a distributed system can simultaneously provide at most two out of three guarantees: "
@@ -61,7 +61,7 @@ def create_sample_docx(output_path: Path):
         "For example, DynamoDB and Cassandra are PA/EL systems (prioritize Availability during partitions, and minimize Latency during normal operations). "
         "In contrast, HBase, BigTable, and MongoDB are PC/EC systems (strictly prioritizing Consistency under both partitioned and normal states)."
     )
-    
+
     doc.save(str(output_path))
     print(f"Created sample DOCX: {output_path}")
 
@@ -69,4 +69,3 @@ if __name__ == "__main__":
     kb = Path(__file__).resolve().parent
     create_sample_pdf(kb / "system_design_interview_handbook.pdf")
     create_sample_docx(kb / "distributed_systems_patterns.docx")
-

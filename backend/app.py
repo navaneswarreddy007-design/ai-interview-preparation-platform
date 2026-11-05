@@ -261,20 +261,20 @@ def handle_settings():
         data = request.json or {}
         gemini_key = data.get("gemini_api_key")
         openai_key = data.get("openai_api_key")
-        
+
         if gemini_key is not None:
             config.GEMINI_API_KEY = gemini_key.strip()
             os.environ["GEMINI_API_KEY"] = config.GEMINI_API_KEY
         if openai_key is not None:
             config.OPENAI_API_KEY = openai_key.strip()
             os.environ["OPENAI_API_KEY"] = config.OPENAI_API_KEY
-            
+
         return jsonify({
             "success": True,
             "message": "API key configuration updated.",
             "ai_status": config.get_ai_status()
         })
-        
+
     return jsonify({
         "ai_status": config.get_ai_status(),
         "has_gemini": bool(config.GEMINI_API_KEY),
@@ -302,11 +302,11 @@ def load_sample():
     sample_id = data.get("sample_id", "fullstack")
     if sample_id not in SAMPLE_RESUMES:
         return jsonify({"error": f"Sample '{sample_id}' not found."}), 404
-        
+
     sample = SAMPLE_RESUMES[sample_id]
     parsed_profile = parse_resume_structure(sample["raw_text"])
     resume_id = str(uuid.uuid4())
-    
+
     return jsonify({
         "resume_id": resume_id,
         "filename": f"{sample_id}_resume.pdf",
@@ -322,23 +322,23 @@ def upload_resume():
         file = request.files['file']
         if not file or file.filename == '':
             return jsonify({"error": "No file selected."}), 400
-            
+
         validation = validate_file(file.filename)
         if not validation["valid"]:
             return jsonify({"error": validation["error"]}), 400
-            
+
         filename = secure_filename(file.filename)
         unique_filename = f"{uuid.uuid4().hex[:8]}_{filename}"
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         file.save(save_path)
-        
+
         # Check file size
         file_size = os.path.getsize(save_path)
         validation_size = validate_file(filename, file_size)
         if not validation_size["valid"]:
             os.remove(save_path)
             return jsonify({"error": validation_size["error"]}), 400
-            
+
         # Extract text based on file type
         try:
             if validation["extension"] == 'pdf':
@@ -349,20 +349,20 @@ def upload_resume():
             if os.path.exists(save_path):
                 os.remove(save_path)
             return jsonify({"error": f"Failed to extract text: {str(e)}"}), 422
-            
+
     elif request.is_json and 'raw_text' in request.json:
         extracted_text = request.json['raw_text']
         filename = request.json.get('filename', 'pasted_resume.txt')
         unique_filename = f"{uuid.uuid4().hex[:8]}_{filename}"
     else:
         return jsonify({"error": "Please provide a file or raw_text."}), 400
-        
+
     if not extracted_text or len(extracted_text.strip()) < 50:
         return jsonify({"error": "Resume content was empty or contained insufficient text to analyze."}), 400
-        
+
     parsed_profile = parse_resume_structure(extracted_text)
     resume_id = str(uuid.uuid4())
-    
+
     return jsonify({
         "resume_id": resume_id,
         "filename": filename,
@@ -374,12 +374,12 @@ def api_generate_questions():
     try:
         data = request.json or {}
         resume_data = data.get("resume_data")
-        
+
         # If resume_data is missing or empty, fall back gracefully to sample fullstack resume
         if not resume_data or not isinstance(resume_data, dict) or not resume_data.get("all_skills"):
             sample = SAMPLE_RESUMES["fullstack"]
             resume_data = parse_resume_structure(sample["raw_text"])
-            
+
         target_role = data.get("target_role", "Software Engineer")
         interview_type = data.get("interview_type", "Mixed")
         difficulty = data.get("difficulty", "Mid-Level")
@@ -390,7 +390,7 @@ def api_generate_questions():
         include_review = data.get("include_review", False)
         practice_weak_areas = data.get("practice_weak_areas", False)
         job_description = data.get("job_description", "")
-        
+
         result = generate_questions(
             resume_data=resume_data,
             target_role=target_role,
@@ -434,10 +434,10 @@ def api_generate_follow_up():
         resume_data = data.get("resume_data") or {}
         target_role = data.get("target_role", "Software Engineer")
         difficulty = data.get("difficulty", "Mid-Level")
-        
+
         if not question or not candidate_answer:
             return jsonify({"error": "Missing question or candidate_answer"}), 400
-            
+
         result = generate_follow_up_question(
             question=question,
             candidate_answer=candidate_answer,
@@ -458,7 +458,7 @@ def api_assistant_command():
         command_text = data.get("command", "")
         candidate_data = data.get("candidate_data")
         current_session = data.get("current_session")
-        
+
         result = process_assistant_command(command_text, candidate_data, current_session)
         return jsonify(result)
     except Exception as e:
@@ -475,10 +475,10 @@ def api_evaluate_answer():
         resume_data = data.get("resume_data", {})
         target_role = data.get("target_role", "Software Engineer")
         difficulty = data.get("difficulty") or (question.get("difficulty") if isinstance(question, dict) else None) or "Mid-Level"
-        
+
         if not question:
             return jsonify({"error": "Missing question payload."}), 400
-            
+
         evaluation = evaluate_answer(
             question=question,
             candidate_answer=candidate_answer,
@@ -504,7 +504,7 @@ def api_complete_session():
         resume_filename = data.get("resume_filename", "resume.pdf")
         questions = data.get("questions", [])
         resume_data = data.get("resume_data") or {}
-        
+
         processed_questions = []
         scores = []
         all_strengths = []
@@ -512,12 +512,12 @@ def api_complete_session():
         all_suggestions = []
         all_weak_topics = []
         all_drills = []
-        
+
         for idx, q in enumerate(questions):
             q_copy = dict(q)
             cand_ans = (q_copy.get("candidate_answer") or "").strip()
             ev = q_copy.get("evaluation")
-            
+
             # If the candidate answered but evaluation is missing, auto-evaluate now
             if cand_ans and (not ev or not isinstance(ev, dict) or "score" not in ev):
                 try:
@@ -531,7 +531,7 @@ def api_complete_session():
                 except Exception as auto_err:
                     print(f"Auto-eval failed for Q{idx+1}: {auto_err}")
                     ev = None
-                    
+
             # If question was unattempted / blank
             if not ev or not isinstance(ev, dict):
                 ev = {
@@ -547,13 +547,13 @@ def api_complete_session():
                     "weak_topics": ["Complete Answer Delivery"],
                     "recommended_drills": []
                 }
-                
+
             q_copy["evaluation"] = ev
             processed_questions.append(q_copy)
-            
+
             score_val = float(ev.get("score", 0))
             scores.append(score_val)
-            
+
             all_strengths.extend(ev.get("strengths", []))
             all_weaknesses.extend(ev.get("weaknesses", []))
             if ev.get("suggestion"):
@@ -570,7 +570,7 @@ def api_complete_session():
             return [x for x in seq if not (x in seen or seen.add(x))]
 
         ai_status = config.get_ai_status()
-        
+
         # Deduplicate drills safely
         unique_drills = []
         seen_topics = set()
@@ -638,11 +638,11 @@ def api_download_session_pdf(session_id):
         session_data = database.get_session_details(session_id)
         if not session_data:
             return jsonify({"error": "Session not found."}), 404
-            
+
         pdf_bytes = generate_pdf_report(session_data)
         cand_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_data.get("candidate_name", "Candidate").strip())
         filename = f"PrepForge_Report_{cand_name}_{session_id[:8]}.pdf"
-        
+
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
@@ -660,21 +660,21 @@ def api_export_pdf():
         data = request.json or {}
         session_data = data.get("session") or data
         session_id = data.get("session_id") or session_data.get("id")
-        
+
         # If session data is minimal but session_id exists, fetch from DB
         if (not session_data or not session_data.get("questions")) and session_id:
             db_session = database.get_session_details(session_id)
             if db_session:
                 session_data = db_session
-                
+
         if not session_data:
             return jsonify({"error": "No session data provided for PDF export."}), 400
-            
+
         pdf_bytes = generate_pdf_report(session_data)
         cand_name = re.sub(r'[^a-zA-Z0-9_-]', '_', session_data.get("candidate_name", "Candidate").strip())
         short_id = str(session_id)[:8] if session_id else "export"
         filename = f"PrepForge_Report_{cand_name}_{short_id}.pdf"
-        
+
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
@@ -693,10 +693,10 @@ def api_match_job():
         resume_data = data.get("resume_data") or {}
         jd_text = data.get("job_description", "")
         target_role = data.get("target_role", "Software Engineer")
-        
+
         if not jd_text.strip():
             return jsonify({"error": "Please provide a job description to analyze."}), 400
-            
+
         # Extract skills from JD using COMMON_SKILLS_CATALOG
         from extractor import COMMON_SKILLS_CATALOG
         lower_jd = jd_text.lower()
@@ -706,22 +706,22 @@ def api_match_job():
                 pattern = r'(?:\b|_)' + re.escape(sk) + r'(?:\b|_)'
                 if re.search(pattern, lower_jd):
                     jd_skills_set.add(sk.capitalize() if len(sk) > 3 else sk.upper())
-                    
+
         if not jd_skills_set:
             words = re.findall(r'\b[A-Z][a-zA-Z0-9+#.-]{1,15}\b', jd_text)
             for w in words[:10]:
                 if w.lower() not in {"the", "and", "with", "for", "you", "will", "our", "team", "role", "work"}:
                     jd_skills_set.add(w)
-                    
+
         jd_skills = sorted(list(jd_skills_set))
-        
+
         # Get resume skills
         res_skills_raw = resume_data.get("all_skills", []) or []
         res_skills_lower = {s.lower(): s for s in res_skills_raw}
-        
+
         matched_skills = []
         missing_skills = []
-        
+
         for sk in jd_skills:
             if sk.lower() in res_skills_lower:
                 evidence = ""
@@ -747,10 +747,10 @@ def api_match_job():
                     "importance": "High" if sk.lower() in {"react", "python", "aws", "docker", "sql", "node.js"} else "Medium",
                     "suggestion": f"Prepare a practical demonstration or review fundamentals of {sk}."
                 })
-                
+
         total_jd = len(jd_skills) if jd_skills else 1
         alignment_score = round((len(matched_skills) / total_jd) * 100, 1)
-        
+
         roadmap = []
         if missing_skills:
             for item in missing_skills[:4]:
@@ -765,7 +765,7 @@ def api_match_job():
                 "action": "Focus on system trade-offs, scaling bottlenecks, and production observability.",
                 "timeline": "Immediate"
             })
-            
+
         first_matched = matched_skills[0]['skill'] if matched_skills else 'core technologies'
         first_missing = missing_skills[0]['skill'] if missing_skills else 'distributed scaling'
         recommended_questions = [
@@ -773,7 +773,7 @@ def api_match_job():
             f"Describe an instance where you resolved an unexpected production failure or scalability bottleneck.",
             f"If our engineering team introduces {first_missing}, how would you approach rapid adoption and testing?"
         ]
-        
+
         return jsonify({
             "target_role": target_role,
             "alignment_score": alignment_score,
@@ -857,7 +857,7 @@ def api_rag_query():
 def api_rag_ingest():
     try:
         vs = get_vector_store()
-        
+
         # Action 1: Reindex knowledge base directory
         if request.is_json and request.json.get("action") == "reindex_all":
             force = bool(request.json.get("force", False))
@@ -918,7 +918,7 @@ def serve_production_frontend(path):
     # Pass through API requests that didn't match any route
     if path.startswith("api/") or path == "api":
         return jsonify({"error": "API route not found", "path": path}), 404
-        
+
     if os.path.exists(FRONTEND_DIST):
         target_path = os.path.join(FRONTEND_DIST, path)
         if path and os.path.exists(target_path) and not os.path.isdir(target_path):
@@ -926,7 +926,7 @@ def serve_production_frontend(path):
         index_file = os.path.join(FRONTEND_DIST, "index.html")
         if os.path.exists(index_file):
             return send_from_directory(FRONTEND_DIST, "index.html")
-            
+
     return jsonify({
         "status": "online",
         "app": "AI Powered Interview Preparation Platform API",
